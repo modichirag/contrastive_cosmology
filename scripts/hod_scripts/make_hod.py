@@ -66,22 +66,22 @@ def setup_hod(halos, nbar=nbar, satfrac=satfrac, bs=bs, alpha_fid=alpha_fid):
     return mcut, m1
 
 
-def save_power(f, savepath, num=None, suff=""):
-    if num is None: gal = pm.paint(f['Position'].compute())
-    else: gal = pm.paint(f['Position'][:num].compute())
-    #np.save(savepath + "field_zheng07%s.%d"%(suff, j), gal)
-    #
-    mesh = gal / gal.cmean() - 1
-    ps = FFTPower(mesh, mode='1d').power.data
-    k, p = ps['k'], ps['power'].real
-    np.save(savepath%"power"+suff, np.stack([k, p]).T)
-    #
-    gal_comp = tools.cic_compensation(gal, order=2)
-    mesh = gal_comp / gal_comp.cmean() - 1
-    ps = FFTPower(mesh, mode='1d').power.data
-    k, pc = ps['k'], ps['power'].real
-    np.save(savepath%"compensated_power"+suff, np.stack([k, pc]).T)
-    return k, p, pc
+# def save_power(f, savepath, num=None, suff=""):
+#     if num is None: gal = pm.paint(f['Position'].compute())
+#     else: gal = pm.paint(f['Position'][:num].compute())
+#     #np.save(savepath + "field_zheng07%s.%d"%(suff, j), gal)
+#     #
+#     mesh = gal / gal.cmean() - 1
+#     ps = FFTPower(mesh, mode='1d').power.data
+#     k, p = ps['k'], ps['power'].real
+#     np.save(savepath%"power"+suff, np.stack([k, p]).T)
+#     #
+#     gal_comp = tools.cic_compensation(gal, order=2)
+#     mesh = gal_comp / gal_comp.cmean() - 1
+#     ps = FFTPower(mesh, mode='1d').power.data
+#     k, pc = ps['k'], ps['power'].real
+#     np.save(savepath%"compensated_power"+suff, np.stack([k, pc]).T)
+#     return k, p, pc
 
 
 for i_lhc in range(id0, id1):
@@ -90,7 +90,7 @@ for i_lhc in range(id0, id1):
     halos = Halos.Quijote_LHC_HR(i_lhc, z=zred)
 
     mcut, m1 = setup_hod(halos)
-    ps = []
+    ps, ngals, gals, prs, hods = [], [], [], [], []
     ngals = []
     
     save_dir = data_dir + '%04d/'%i_lhc
@@ -119,14 +119,25 @@ for i_lhc in range(id0, id1):
         galsum = hodtools.galaxy_summary(hod, bs=bs, filename=save_dir+'gals_%i.json'%iseed)
         print(galsum)
         ngals.append(galsum['number density'])
-        ps.append(save_power(hod, save_dir+"/%s"+"_%d"%iseed))
-        
+        k, p = hodtools.get_power(hod, pm)
+        np.save(save_dir+"power_%d"%iseed, p)
+        k, pr = hodtools.get_power_rsd(hod, pm)
+        np.save(save_dir+"power_rsd_%d"%iseed, pr)
+        ps.append(p)
+        prs.append(pr)
+        gals.append([galsum['total'], galsum['centrals'], galsum['satellites']])
+        hods.append([theta_hod[key] for key in theta_hod.keys()])
+
+    np.save(save_dir + "power", np.array(ps))
+    np.save(save_dir + "power_rsd", np.array(prs))
+    np.save(save_dir + "gals", np.array(gals))
+    np.save(save_dir + "hodp", np.array(hods)) 
     #Make PS figure
     print("mean number denisty : ", np.mean(ngals))
     fig, ax = plt.subplots(1, 2, figsize=(9, 4), sharex=True, sharey=True)
     for i in range(len(ps)):
         ax[0].plot(ps[i][0], ps[i][1])
-        ax[1].plot(ps[i][0], ps[i][2])
+        #ax[1].plot(ps[i][0], ps[i][2])
     for axis in ax:
         axis.loglog()
         axis.grid(which='both')
