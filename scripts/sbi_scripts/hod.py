@@ -7,6 +7,7 @@ import argparse
 import pickle
 
 parser = argparse.ArgumentParser(description='Process some integers.')
+parser.add_argument('--datapath', type=str, help='datapath in contrastive data folder')
 parser.add_argument('--kmax', type=float, default=0.5, help='kmax')
 parser.add_argument('--nlayers', type=int, default=5, help='kmax')
 parser.add_argument('--nhidden', type=int, default=32, help='kmax')
@@ -16,69 +17,67 @@ parser.add_argument('--batch', type=int, default=128, help='batch size')
 parser.add_argument('--suffix', type=str, default="", help='batch size')
 parser.add_argument('--fithod', type=int, default=1, help='fit HOD params')
 parser.add_argument('--nposterior', type=int, default=10, help='how many posteriors to plot')
-parser.add_argument('--datapath', type=str, default="", help='datapath in contrastive data folder')
+parser.add_argument('--ampnorm', type=int, default=0, help='normalize at large scales by amplitude')
 args = parser.parse_args()
 
-nhod = 10
 np.random.seed(args.seed)
 #
-if args.datapath == "": datapath = "/mnt/ceph/users/cmodi/contrastive/data/z05-chang/zheng07/"
-else: datapath = "/mnt/ceph/users/cmodi/contrastive/data/" + args.datapath
+
+datapath = "/mnt/ceph/users/cmodi/contrastive/data/" + args.datapath
 path = datapath.replace("data", "analysis")
 folder = "%s-kmax%02d-nl%02d-nh%02d-s%03d/"%(args.model, args.kmax*100, args.nlayers, args.nhidden, args.seed)
-if args.suffix != "": folder = folder[:-1] + "-%s/"% args.suffix 
+if args.suffix != "": 
+    folder = folder[:-1] + "-%s/"% args.suffix 
 savepath = path + folder
 os.makedirs(savepath, exist_ok=True)
-###
-params, params_fid, cosmonames = sbitools.quijote_params()
-cosmonames = cosmonames + ["Mcut", "sigma", "M0", "M1", "alpha"]
-ndim = len(params_fid)
-hod_params = np.load(datapath + 'hodp.npy')
-nhodp = hod_params.shape[-1]
-hod_params = sbitools.minmax(hod_params.reshape(-1, nhodp), log_transform=False)[0]
-if args.fithod == 1: all_params = np.hstack([np.repeat(params, 10, axis=0), hod_params])
-else: all_params = np.repeat(params, 10, axis=0)
-prior = sbitools.sbi_prior(all_params, offset=0.1)
-hod_params = hod_params.reshape(-1, nhod, nhodp)
+#####
 
 #####
 ### Dataloader
-pk = np.load(datapath + '/power.npy')
-k = np.load(datapath + '/0000/power_0.npy')[:, 0]
-ngal = np.load(datapath + '/gals.npy')[..., 0]
-#pk_fid = np.load('../../sbi-scattering/data/quijote/fiducial/pkmatter.npy')[..., 1]
-#
-ik05 = np.where(k>args.kmax)[0][0]
-k = k[1:ik05]
-pk = pk[..., 1:ik05]
-#
-print(params.shape, hod_params.shape, pk.shape)
+def dataloader():
+    pk = np.load(datapath + '/power.npy')
+    k = np.load('/mnt/ceph/users/cmodi/contrastive/data/z05-chang/zheng07//0000/power_0.npy')[:, 0]
+    ngal = np.load(datapath + '/gals.npy')[..., 0]
+    nhod = pk.shape[1]
+    print("Number of HODs per cosmology : ", nhod)
+    #
+    ik05 = np.where(k>args.kmax)[0][0]
+    pk = pk[..., 1:ik05]
+    if args.ampnorm: pk /= pk[..., 1:2] # Normalize at large sacles
+    features = np.concatenate([pk, np.expand_dims(ngal, -1)], axis=-1)
+    print("Features shape : ", features.shape)
+    #
+    cosmo_params = sbitools.quijote_params()[0]
+    ncosmop = cosmo_params.shape[-1]
+    cosmo_params = np.repeat(cosmo_params, nhod, axis=0).reshape(-1, nhod, ncosmop)
+    if args.fithod == 1: 
+        hod_params = np.load(datapath + 'hodp.npy')
+        nhodp = hod_params.shape[-1]
+        hod_params = sbitools.minmax(hod_params.reshape(-1, nhodp), log_transform=False)[0]
+        hod_params = hod_params.reshape(-1, nhod, nhodp)
+        params = np.concatenate([cosmo_params, hod_params], axis=-1)
+    else: 
+        params = cosmo_params
+    print("Parameters shape : ", params.shape)
 
-###test_tain_split
-train, test, tidx = sbitools.test_train_split(pk, params, train_size_frac=0.8)
+    return features, params
+
+#
+### test_tain_split
+features, params = dataloader()
+train, test, tidx = sbitools.test_train_split(features, params, train_size_frac=0.8)
 trainx, trainy = train
 testx, testy = test
-trainx = trainx.reshape(-1, trainx.shape[-1])
-testx = testx.reshape(-1, trainx.shape[-1])
-trainy = np.repeat(trainy, 10, axis=0)
-testy = np.repeat(testy, 10, axis=0)
-train_hod, test_hod = hod_params[tidx[0]].reshape(-1, hod_params.shape[-1]), \
-                      hod_params[tidx[1]].reshape(-1, hod_params.shape[-1])
-print(trainy.shape, train_hod.shape)
-print(testy.shape, test_hod.shape)
-if args.fithod:
-    trainy = np.hstack([trainy, train_hod])
-    testy = np.hstack([testy, test_hod])
-print(trainx.shape, testx.shape)
-print(trainy.shape, testy.shape)
-trainx, scaler = sbitools.standardize(trainx, log_transform=True)
-testx, _ = sbitools.standardize(testx, log_transform=True, scaler=scaler)
-traingalx, scalerngal = sbitools.standardize(ngal[tidx[0]].reshape(-1, 1), log_transform=True)
-testgalx, _ = sbitools.standardize(ngal[tidx[1]].reshape(-1, 1), log_transform=True, scaler=scalerngal)
-trainx = np.hstack([trainx, traingalx])
-testx = np.hstack([testx, testgalx])
-print(trainx.shape, testx.shape)
-######
+
+### Standaradize
+trainx, testx, scaler = sbitools.standardize(trainx, secondary=testx, log_transform=True)
+with open(savepath + "scaler.pkl", "wb") as handle:
+    pickle.dump(scaler, handle)
+
+
+#############
+### SBI
+prior = sbitools.sbi_prior(params.reshape(-1, params.shape[-1]), offset=0.1)
 try:
     print("Load an existing posterior model")
     #raise Exception
@@ -96,10 +95,11 @@ except Exception as e:
     with open(savepath + "inference.pkl", "wb") as handle:
         pickle.dump(inference, handle)
 
-###Diagnostics
+### Diagnostics
+cosmonames = r'$\Omega_m$,$\Omega_b$,$h$,$n_s$,$\sigma_8$'.split(",")
+cosmonames = cosmonames + ["Mcut", "sigma", "M0", "M1", "alpha"]
 for _ in range(args.nposterior):
     ii = np.random.randint(0, testx.shape[0], 1)[0]
     fig, ax = sbiplots.plot_posterior(testx[ii], testy[ii], posterior, titles=cosmonames)
-    plt.savefig(savepath + 'posterior%04d.png'%(tidx[1][ii//10]))
-sbiplots.test_diagnostics(testx, testy, posterior, titles=cosmonames, savepath=savepath, test_frac=.25, nsamples=500)
-
+    plt.savefig(savepath + 'posterior%04d.png'%(tidx[1][ii//params.shape[1]]))
+sbiplots.test_diagnostics(testx, testy, posterior, titles=cosmonames, savepath=savepath, test_frac=0.2, nsamples=500)
