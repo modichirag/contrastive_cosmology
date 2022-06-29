@@ -355,3 +355,5 @@ def cic_compensation(field, order=2):
     cfield *= cic_kwts
     field_comp = cfield.c2r() #np.fft.irfftn(cfield)
     return field_comp
+
+

@@ -31,7 +31,7 @@ def sbi_prior(params, offset=0.25):
     return prior
 
 ###
-def test_train_split(x, y, train_size_frac=0.8, random_state=0):
+def test_train_split(x, y, train_size_frac=0.8, random_state=0, reshape=True):
     '''
     Split the data into test and training dataset
     '''
@@ -43,23 +43,34 @@ def test_train_split(x, y, train_size_frac=0.8, random_state=0):
     test_x = x[test_id]
     train_y = y[train_id]
     test_y = y[test_id]    
+    if reshape:
+        if len(train_x.shape) > 2:
+            nsim = train_x.shape[1] # assumes that features are on last axis
+            train_x = train_x.reshape(-1, train_x.shape[-1])
+            test_x = test_x.reshape(-1, train_x.shape[-1])
+            train_y = train_y.reshape(-1, train_y.shape[-1])
+            test_y = test_y.reshape(-1, train_y.shape[-1])
 
     return [train_x, train_y], [test_x, test_y], [train_id, test_id]
 
 
-
 ###
-def standardize(data, log_transform=True, scaler=None):
+def standardize(data, secondary=None, log_transform=True, scaler=None):
     '''
     Given a dataset, standardize by removing mean and scaling by standard deviation
     '''
     if log_transform:
         data = np.log10(data)
+        if secondary is not None:
+            secondary = np.log10(secondary)
     if scaler is None: 
         scaler = StandardScaler()
         data_s = scaler.fit_transform(data)
     else: 
         data_s = scaler.transform(data)
+    if secondary is not None:
+        secondary_s = scaler.transform(secondary)
+        return data_s, secondary_s, scaler
     return data_s, scaler
 
 

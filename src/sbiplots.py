@@ -58,7 +58,7 @@ def test_diagnostics(x, y, posterior, nsamples=500, rankplot=True, titles=None, 
     #plot ranks
     plt.figure(figsize=(15, 4))
     nbins = 10
-    ncounts = x.shape[0]/nbins
+    ncounts = ranks.shape[0]/nbins
     for i in range(5):
     #     plt.hist(np.array(ranks)[:, i], bins=10, histtype='step', lw=2)
         plt.subplot(151 + i)

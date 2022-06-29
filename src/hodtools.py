@@ -1,6 +1,7 @@
 import numpy as np
 import json
-
+import tools
+from nbodykit.lab import FFTPower
 
 def sample_HOD(m_hod): 
     ''' sample HOD value based on priors set by Parejko+(2013)
@@ -37,7 +38,8 @@ def sample_conditional_HOD(m_hod, mcut, m1=None, seed=0):
         return {'logMmin': _hod[0], 'sigma_logM': _hod[1], 'logM0': _hod[2], 'logM1': _hod[3], 'alpha': _hod[4]}
     elif m_hod == 'zheng07_ab': 
         hod_min = np.array([mcut, 0.4, m0, m1, 0.7, 0., 0.])
-        dhod = np.array([0.2, 0.1, 0.5, 0.4, 0.4, 0.5, 0.5])
+        dhod = np.array([0.15, 0.1, 0.2, 0.3, 0.3, 0.5, 0.5])
+        #dhod = np.array([0.2, 0.1, 0.5, 0.4, 0.4, 0.5, 0.5])
         _hod = hod_min + dhod * np.random.uniform(size=(7))
         return {'logMmin': _hod[0], 'sigma_logM': _hod[1], 'logM0': _hod[2], 'logM1': _hod[3], 'alpha': _hod[4], 
                 'mean_occupation_centrals_assembias_param1': _hod[5], 
@@ -61,3 +63,25 @@ def galaxy_summary(hod, bs, filename=None):
             json.dump(galsum, fp, default=_convert, indent=4, sort_keys=True)
     return galsum
 
+
+def get_power(f, pm, num=None, compensated=False):
+    if num is None: gal = pm.paint(f['Position'].compute())
+    else: gal = pm.paint(f['Position'][:num].compute())
+    if compensated: gal = tools.cic_compensation(gal, order=2)
+
+    mesh = gal / gal.cmean() - 1
+    ps = FFTPower(mesh, mode='1d').power.data
+    k, p = ps['k'], ps['power'].real
+    return k, p
+
+
+def get_power_rsd(f, pm, num=None, compensated=False, los=[0, 0, 1]):
+    pos = f['Position'] + f['VelocityOffset']*los
+    if num is None: gal = pm.paint(pos.compute())
+    else: gal = pm.paint(pos[:num].compute())
+    if compensated: gal = tools.cic_compensation(gal, order=2)
+
+    mesh = gal / gal.cmean() - 1
+    ps = FFTPower(mesh, mode='2d', Nmu=10).power.data
+    k, p = ps['k'], ps['power'].real[:, 5:]
+    return k, p
