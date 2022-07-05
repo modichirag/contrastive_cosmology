@@ -47,7 +47,7 @@ else: data_dir = data_dir + '%s/'%(args.model + "-" + args.suffix2)
 os.makedirs(data_dir, exist_ok=True)
 #
 
-def setup_hod(halos, nbar=nbar, satfrac=satfrac, bs=bs, alpha_fid=alpha_fid):
+def setup_hod(halos, nbar=nbar, satfrac=satfrac, bs=bs, alpha_fid=alpha_fid, model='zheng07'):
     if nbar != 0.:
         hmass = halos['Mass'].compute()
         numdhalos = hmass.size/bs**3
@@ -61,27 +61,11 @@ def setup_hod(halos, nbar=nbar, satfrac=satfrac, bs=bs, alpha_fid=alpha_fid):
         msum = mdiff.sum()/nsat
         m1 = msum**(1/alpha_fid)
         mcut = 10**(np.log10(mcut) + 0.1)  ##offset by log_sigma/2 to account for scatter
+        if model == 'zheng07_ab': mcut *= 0.9
         print("M1, mcut : ", np.log10(m1), np.log10(mcut))
     else: mcut, m1 = 10**13., 10**13.9
     return mcut, m1
 
-
-# def save_power(f, savepath, num=None, suff=""):
-#     if num is None: gal = pm.paint(f['Position'].compute())
-#     else: gal = pm.paint(f['Position'][:num].compute())
-#     #np.save(savepath + "field_zheng07%s.%d"%(suff, j), gal)
-#     #
-#     mesh = gal / gal.cmean() - 1
-#     ps = FFTPower(mesh, mode='1d').power.data
-#     k, p = ps['k'], ps['power'].real
-#     np.save(savepath%"power"+suff, np.stack([k, p]).T)
-#     #
-#     gal_comp = tools.cic_compensation(gal, order=2)
-#     mesh = gal_comp / gal_comp.cmean() - 1
-#     ps = FFTPower(mesh, mode='1d').power.data
-#     k, pc = ps['k'], ps['power'].real
-#     np.save(savepath%"compensated_power"+suff, np.stack([k, pc]).T)
-#     return k, p, pc
 
 
 for i_lhc in range(id0, id1):
@@ -89,8 +73,8 @@ for i_lhc in range(id0, id1):
     # read in halo catalog
     halos = Halos.Quijote_LHC_HR(i_lhc, z=zred)
 
-    mcut, m1 = setup_hod(halos)
-    ps, ngals, gals, prs, hods = [], [], [], [], []
+    mcut, m1 = setup_hod(halos, model=args.model)
+    ps, ngals, gals, pmus, pells, hods = [], [], [], [], [], []
     ngals = []
     
     save_dir = data_dir + '%04d/'%i_lhc
@@ -121,15 +105,19 @@ for i_lhc in range(id0, id1):
         ngals.append(galsum['number density'])
         k, p = hodtools.get_power(hod, pm)
         np.save(save_dir+"power_%d"%iseed, p)
-        k, pr = hodtools.get_power_rsd(hod, pm)
-        np.save(save_dir+"power_rsd_%d"%iseed, pr)
+        k, pmu, pell = hodtools.get_power_rsd(hod, pm, Nmu=6)
+        np.save(save_dir+"power_rsd_%d"%iseed, pmu)
+        np.save(save_dir+"power_ell_%d"%iseed, pell)
+
         ps.append(p)
-        prs.append(pr)
+        pmus.append(pmu)
+        pells.append(pell)
         gals.append([galsum['total'], galsum['centrals'], galsum['satellites']])
         hods.append([theta_hod[key] for key in theta_hod.keys()])
 
     np.save(save_dir + "power", np.array(ps))
-    np.save(save_dir + "power_rsd", np.array(prs))
+    np.save(save_dir + "power_rsd", np.array(pmus))
+    np.save(save_dir + "power_ell", np.array(pells))
     np.save(save_dir + "gals", np.array(gals))
     np.save(save_dir + "hodp", np.array(hods)) 
     #Make PS figure

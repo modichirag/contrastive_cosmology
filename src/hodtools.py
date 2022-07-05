@@ -48,7 +48,7 @@ def sample_conditional_HOD(m_hod, mcut, m1=None, seed=0):
         raise NotImplementedError 
 
 
-
+        
 def galaxy_summary(hod, bs, filename=None):
     gtype = hod['gal_type'].compute()
     galsum = {}
@@ -75,7 +75,7 @@ def get_power(f, pm, num=None, compensated=False):
     return k, p
 
 
-def get_power_rsd(f, pm, num=None, compensated=False, los=[0, 0, 1]):
+def get_power_rsdwedges(f, pm, num=None, compensated=False, los=[0, 0, 1]):
     pos = f['Position'] + f['VelocityOffset']*los
     if num is None: gal = pm.paint(pos.compute())
     else: gal = pm.paint(pos[:num].compute())
@@ -85,3 +85,19 @@ def get_power_rsd(f, pm, num=None, compensated=False, los=[0, 0, 1]):
     ps = FFTPower(mesh, mode='2d', Nmu=10).power.data
     k, p = ps['k'], ps['power'].real[:, 5:]
     return k, p
+
+
+def get_power_rsd(f, pm, num=None, compensated=False, los=[0, 0, 1], Nmu=10, poles=[0, 2, 4]):
+    pos = f['Position'] + f['VelocityOffset']*los
+    if num is None: gal = pm.paint(pos.compute())
+    else: gal = pm.paint(pos[:num].compute())
+    if compensated: gal = tools.cic_compensation(gal, order=2)
+
+    mesh = gal / gal.cmean() - 1
+    ps = FFTPower(mesh, mode='2d', Nmu=Nmu, poles=poles)
+    k, pmu = ps.power.data['k'], ps.power.data['power'].real[:, Nmu//2:]
+    pell = np.array([ps.poles.data['power_%d'%i] for i in poles]).T
+    return k, pmu, pell
+
+
+    
