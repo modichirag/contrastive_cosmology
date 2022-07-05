@@ -31,6 +31,7 @@ if args.suffix != "":
     folder = folder[:-1] + "-%s/"% args.suffix 
 savepath = path + folder
 os.makedirs(savepath, exist_ok=True)
+print("\nWorking directory : ", savepath)
 #####
 
 #####
@@ -64,8 +65,6 @@ def dataloader():
         if args.ells == "0": pk = pk[..., 0]
         if args.ells == "2": pk = pk[..., 1]
         if args.ells == "4": pk = pk[..., 2]
-
-
     
     features = np.concatenate([pk, np.expand_dims(ngal, -1)], axis=-1)
     print("Features shape : ", features.shape)
@@ -85,46 +84,36 @@ def dataloader():
 
     return features, params
 
-#
-### test_tain_split
-features, params = dataloader()
-train, test, tidx = sbitools.test_train_split(features, params, train_size_frac=0.8)
-trainx, trainy = train
-testx, testy = test
-
-### Standaradize
-trainx, testx, scaler = sbitools.standardize(trainx, secondary=testx, log_transform=True)
-with open(savepath + "scaler.pkl", "wb") as handle:
-    pickle.dump(scaler, handle)
-
-print(scaler.mean_)
-print(scaler.scale_)
 
 #############
-### SBI
-prior = sbitools.sbi_prior(params.reshape(-1, params.shape[-1]), offset=0.1)
-try:
-    print("Load an existing posterior model")
-    #raise Exception
-    with open(savepath + "posterior.pkl", "rb") as handle:
-        posterior = pickle.load(handle)
-except Exception as e:
-    print("##Exception##\n", e)
-    print("Training a new NF")
-    inference, density_estimator, posterior = sbitools.sbi(trainx, trainy, prior, \
-                                            model=args.model, nlayers=args.nlayers, \
-                                                           nhidden=args.nhidden, batch_size=args.batch)
-    with open(savepath + "posterior.pkl", "wb") as handle:
-        pickle.dump(posterior, handle)
+def analysis():
+    features, params = dataloader()
+    data = sbitools.test_train_split(features, params, train_size_frac=0.8)
 
-    with open(savepath + "inference.pkl", "wb") as handle:
-        pickle.dump(inference, handle)
+    ### Standaradize
+    data.trainx, data.testx, scaler = standardize(data.trainx, secondary=data.testx, log_transform=True)
+    with open(savepath + "scaler.pkl", "wb") as handle:
+        pickle.dump(scaler, handle)
 
-### Diagnostics
-cosmonames = r'$\Omega_m$,$\Omega_b$,$h$,$n_s$,$\sigma_8$'.split(",")
-cosmonames = cosmonames + ["Mcut", "sigma", "M0", "M1", "alpha"]
-for _ in range(args.nposterior):
-    ii = np.random.randint(0, testx.shape[0], 1)[0]
-    fig, ax = sbiplots.plot_posterior(testx[ii], testy[ii], posterior, titles=cosmonames)
-    plt.savefig(savepath + 'posterior%04d.png'%(tidx[1][ii//params.shape[1]]))
-sbiplots.test_diagnostics(testx, testy, posterior, titles=cosmonames, savepath=savepath, test_frac=0.2, nsamples=500)
+    ### SBI
+    prior = sbitools.sbi_prior(params.reshape(-1, params.shape[-1]), offset=0.1)
+    posterior = sbitools.sbi(data.trainx, data.trainy, prior, \
+                                  model=args.model, nlayers=args.nlayers, \
+                                  nhidden=args.nhidden, batch_size=args.batch, savepath=savepath)
+    return data, posterior
+
+
+#############
+def diagnostics(data, posterior):
+    cosmonames = r'$\Omega_m$,$\Omega_b$,$h$,$n_s$,$\sigma_8$'.split(",")
+    cosmonames = cosmonames + ["Mcut", "sigma", "M0", "M1", "alpha"]
+    for _ in range(args.nposterior):
+        ii = np.random.randint(0, data.testx.shape[0], 1)[0]
+        savename = savepath + 'posterior%04d.png'%(data.tidx[1][ii//params.shape[1]])
+        fig, ax = sbiplots.plot_posterior(data.testx[ii], data.testy[ii], posterior, titles=cosmonames, savename=savename)
+    sbiplots.test_diagnostics(data.testx, data.testy, posterior, titles=cosmonames, savepath=savepath, test_frac=0.2, nsamples=500)
+
+
+data, posterior = analysis()
+diagnostics(data, posterior)
+

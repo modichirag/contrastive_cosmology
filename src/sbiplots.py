@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 
 ###
-def plot_posterior(x, y, posterior, nsamples=1000, titles=None):
+def plot_posterior(x, y, posterior, nsamples=1000, titles=None, savename=""):
     
     posterior_samples = posterior.sample((nsamples,), x=torch.from_numpy(x.astype('float32'))).detach().numpy()
     mu, std = posterior_samples.mean(axis=0), posterior_samples.std(axis=0)
@@ -29,6 +29,7 @@ def plot_posterior(x, y, posterior, nsamples=1000, titles=None):
         for i in range(ndim): 
             axar[i, i].set_title(titles[i])
 
+    if savename != "": plt.savefig(savename)
     return fig, axar
 
 
