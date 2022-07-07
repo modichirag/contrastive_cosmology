@@ -28,6 +28,7 @@ parser.add_argument('--nbar', type=float, default=0.0001, help='numbder density 
 parser.add_argument('--suffix', type=str, default="", help='suffix for parent folder with z and nnbar')
 parser.add_argument('--suffix2', type=str, default="", help='suffix for subfolder with model name')
 parser.add_argument('--rewrite', type=int, default=0, help='rewrite files which already exist')
+parser.add_argument('--fiducial', type=int, default=0, help='for fiducial simulations')
 args = parser.parse_args()
 
 
@@ -42,6 +43,7 @@ if nbar != 0: data_dir = '/mnt/ceph/users/cmodi/contrastive/data/z%02d-N%04d/'%(
 else: data_dir = '/mnt/ceph/users/cmodi/contrastive/data/z%02d/'%(zred*10)
 if args.suffix != "": data_dir = data_dir[:-1] + '-%s/'%args.suffix
 os.makedirs(data_dir, exist_ok=True)
+if (args.fiducial == 1) & (args.suffix2 == ""): args.suffix2 = "fid"
 if args.suffix2 == "": data_dir = data_dir + '%s/'%args.model
 else: data_dir = data_dir + '%s/'%(args.model + "-" + args.suffix2)
 os.makedirs(data_dir, exist_ok=True)
@@ -71,7 +73,10 @@ def setup_hod(halos, nbar=nbar, satfrac=satfrac, bs=bs, alpha_fid=alpha_fid, mod
 for i_lhc in range(id0, id1):
     print('LHC %i' % i_lhc)
     # read in halo catalog
-    halos = Halos.Quijote_LHC_HR(i_lhc, z=zred)
+    if args.fiducial: 
+        halos = Halos.Quijote_fiducial_HR(i_lhc, z=zred)
+    else:
+        halos = Halos.Quijote_LHC_HR(i_lhc, z=zred)
 
     mcut, m1 = setup_hod(halos, model=args.model)
     ps, ngals, gals, pmus, pells, hods = [], [], [], [], [], []
@@ -79,8 +84,7 @@ for i_lhc in range(id0, id1):
     
     save_dir = data_dir + '%04d/'%i_lhc
     os.makedirs(save_dir, exist_ok=True)        
-    # save_power(halos, save_dir+"%s_h")
-    # save_power(halos, save_dir+"%s_h1e-4", num=int(1e-4*bs**3))
+
     #
     #
     if args.rewrite: do_hod = True
@@ -105,7 +109,7 @@ for i_lhc in range(id0, id1):
         ngals.append(galsum['number density'])
         k, p = hodtools.get_power(hod, pm)
         np.save(save_dir+"power_%d"%iseed, p)
-        k, pmu, pell = hodtools.get_power_rsd(hod, pm, Nmu=6)
+        k, pmu, pell = hodtools.get_power_rsd(hod, pm, Nmu=12)
         np.save(save_dir+"power_rsd_%d"%iseed, pmu)
         np.save(save_dir+"power_ell_%d"%iseed, pell)
 
