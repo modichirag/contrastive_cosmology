@@ -61,8 +61,7 @@ def Quijote_fiducial_HR(i, z=0.5):
         Quijote HR fiducial halo catalog  
     '''
     # directory that contains the Quijote LHC HR
-    halo_folder = os.path.join(os.environ['QUIJOTE_DIR'],
-            'Halos/fiducial_HR', '%i' % i)
+    halo_folder = "/mnt/ceph/users/cmodi/Quijote/fiducial/halos/FoF/%d/"%i
     
     # fiducial cosmology (Villaesuca-Navarro+2020) 
     Om, Ob, h, ns, s8 = Quijote_fiducial_cosmo() 
