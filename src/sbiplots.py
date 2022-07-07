@@ -6,12 +6,12 @@ import matplotlib.pyplot as plt
 
 
 ###
-def plot_posterior(x, y, posterior, nsamples=1000, titles=None, savename=""):
+def plot_posterior(x, y, posterior, nsamples=1000, titles=None, savename="", ndim=None):
     
     posterior_samples = posterior.sample((nsamples,), x=torch.from_numpy(x.astype('float32'))).detach().numpy()
     mu, std = posterior_samples.mean(axis=0), posterior_samples.std(axis=0)
     p = y
-    ndim = len(y)
+    if ndim is None: ndim = len(y)
     #
     fig, axar = plt.subplots(ndim, ndim, figsize=(3*ndim, 3*ndim), sharex='col')
     nbins = 'auto'
@@ -34,9 +34,11 @@ def plot_posterior(x, y, posterior, nsamples=1000, titles=None, savename=""):
 
 
 ###
-def test_diagnostics(x, y, posterior, nsamples=500, rankplot=True, titles=None, savepath="", test_frac=1.0):
+def test_diagnostics(x, y, posterior, nsamples=500, rankplot=True, titles=None, savepath="", test_frac=1.0, suffix=""):
 
     ndim = y.shape[1]
+    ndim = min(ndim, posterior.sample((1,),  x=torch.from_numpy(x[0].astype('float32')), 
+                                             show_progress_bars=False).detach().numpy().shape[1])
     if titles is None: titles = []*ndim
     ranks = []
     mus, stds = [], []
@@ -74,7 +76,7 @@ def test_diagnostics(x, y, posterior, nsamples=500, rankplot=True, titles=None, 
     suptitle = savepath.split('/')[-2]
     plt.suptitle(suptitle)
     plt.tight_layout()
-    plt.savefig(savepath + 'rankplot.png')
+    plt.savefig(savepath + 'rankplot%s.png'%suffix)
 
     #plot predictions
     if ndim > 5: fig, ax = plt.subplots(ndim//5, 5, figsize=(15, 4*ndim//5))
@@ -87,6 +89,68 @@ def test_diagnostics(x, y, posterior, nsamples=500, rankplot=True, titles=None, 
         ax.flatten()[j].set_title(titles[j], fontsize=12)
     plt.suptitle(suptitle)
     plt.tight_layout()
-    plt.savefig(savepath + 'predictions.png')
+    plt.savefig(savepath + 'predictions%s.png'%suffix)
+    
+
+
+
+###
+def test_fiducial(x, y, posterior, nsamples=500, rankplot=True, titles=None, savepath="", test_frac=1.0, suffix=""):
+
+    ndim = y.shape[1]
+    ndim = min(ndim, posterior.sample((1,),  x=torch.from_numpy(x[0].astype('float32')), 
+                                             show_progress_bars=False).detach().numpy().shape[1])
+    if titles is None: titles = []*ndim
+    ranks = []
+    mus, stds = [], []
+    trues = []
+    for ii in range(x.shape[0]):
+        if ii%100 == 0: print("Test iteration : ",ii)
+        if np.random.uniform() > test_frac: continue
+        posterior_samples = posterior.sample((nsamples,),
+                                             x=torch.from_numpy(x[ii].astype('float32')), 
+                                             show_progress_bars=False).detach().numpy()
+        mu, std = posterior_samples.mean(axis=0), posterior_samples.std(axis=0)
+        rank = [(posterior_samples[:, i] < y[ii, i]).sum() for i in range(ndim)]
+        mus.append(mu)
+        stds.append(std)
+        ranks.append(rank)
+        trues.append(y[ii])
+    mus, stds, ranks = np.array(mus), np.array(stds), np.array(ranks)
+    trues = np.array(trues)
+
+    #plot ranks
+    plt.figure(figsize=(15, 4))
+    nbins = 10
+    ncounts = ranks.shape[0]/nbins
+    for i in range(5):
+    #     plt.hist(np.array(ranks)[:, i], bins=10, histtype='step', lw=2)
+        plt.subplot(151 + i)
+        plt.hist(np.array(ranks)[:, i], bins=nbins)
+        plt.title(titles[i])
+        plt.xlabel('rank')
+        plt.ylabel('counts')
+        plt.grid()
+        plt.axhline(ncounts, color='k')
+        plt.axhline(ncounts - ncounts**0.5, color='k', ls="--")
+        plt.axhline(ncounts + ncounts**0.5, color='k', ls="--")
+    suptitle = savepath.split('/')[-2]
+    plt.suptitle(suptitle)
+    plt.tight_layout()
+    plt.savefig(savepath + 'rankplot%s.png'%suffix)
+
+    #plot predictions
+    if ndim > 5: fig, ax = plt.subplots(ndim//5, 5, figsize=(15, 4*ndim//5))
+    else: fig, ax = plt.subplots(1, 5, figsize=(15, 4))
+    for j in range(ndim):
+        axis = ax.flatten()[j]
+        axis.errorbar(np.arange(mus.shape[0]), mus[:, j], stds[:, j], fmt="none", elinewidth=0.5, alpha=0.5)
+        axis.axhline(trues[0, j], color='k')
+        #axis.plot(y[:, j], y[:, j], 'k.', ms=0.2, lw=0.5)
+        axis.grid(which='both', lw=0.5)
+        axis.set_title(titles[j], fontsize=12)
+    plt.suptitle(suptitle)
+    plt.tight_layout()
+    plt.savefig(savepath + 'predictions%s.png'%suffix)
     
 

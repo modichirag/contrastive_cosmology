@@ -53,6 +53,7 @@ def test_train_split(x, y, train_size_frac=0.8, random_state=0, reshape=True):
         if len(data.trainx.shape) > 2:
             nsim = data.trainx.shape[1] # assumes that features are on last axis
             nfeats, nparams = data.trainx.shape[-1], data.trainy.shape[-1]
+            data.nsim, data.nfeatures, data.nparams = nsim, nfeats, nparams
             data.trainx = data.trainx.reshape(-1, nfeats)
             data.testx = data.testx.reshape(-1, nfeats)
             data.trainy = data.trainy.reshape(-1, nparams)
@@ -97,13 +98,22 @@ def minmax(data, log_transform=True, scaler=None):
 
 
 ###
+def save_posterior(scaler, savepath):
+    with open(savepath + "scaler.pkl", "wb") as handle:
+        pickle.dump(scaler, handle)
+
 def save_posterior(posterior, savepath):
     with open(savepath + "posterior.pkl", "wb") as handle:
         pickle.dump(posterior, handle)
 
-def save_inference(posterior, savepath):
+def save_inference(inference, savepath):
     with open(savepath + "inference.pkl", "wb") as handle:
         pickle.dump(inference, handle)
+
+
+def load_scaler(savepath):
+    with open(savepath + "scaler.pkl", "rb") as handle:
+        return pickle.load(handle)
 
 def load_posterior(savepath):
     with open(savepath + "posterior.pkl", "rb") as handle:
@@ -115,7 +125,9 @@ def load_inference(savepath):
 
 
 ###
-def sbi(trainx, trainy, prior, nhidden=32, nlayers=5, model='maf', batch_size=128, savepath=None):
+def sbi(trainx, trainy, prior, savepath=None, 
+        nhidden=32, nlayers=5, model='maf', batch_size=128,
+        validation_fraction=0.2, lr=0.0005):
 
     if savepath is not None:
         try:
@@ -135,7 +147,9 @@ def sbi(trainx, trainy, prior, nhidden=32, nlayers=5, model='maf', batch_size=12
     inference.append_simulations(
         torch.from_numpy(trainy.astype('float32')), 
         torch.from_numpy(trainx.astype('float32')))
-    density_estimator = inference.train(training_batch_size=batch_size, show_train_summary=True)
+    density_estimator = inference.train(training_batch_size=batch_size, \
+                                        validation_fraction=validation_fraction, \
+                                        learning_rate=lr, show_train_summary=True)
     posterior = inference.build_posterior(density_estimator)
     
     if savepath is not None:
