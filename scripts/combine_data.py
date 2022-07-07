@@ -1,7 +1,9 @@
 import numpy as np
 import pickle, json
 
-path = '/mnt/ceph/users/cmodi/contrastive/data/z10-N0004/zheng07/'
+path = '/mnt/ceph/users/cmodi/contrastive/data/z10-N0001/zheng07-fid/'
+path = '/mnt/ceph/users/cmodi/contrastive/data/z10-broad/zheng07/'
+#path = '/mnt/ceph/users/cmodi/contrastive/data/z10-N0001/zheng07_ab/'
 #path = '/mnt/ceph/users/cmodi/contrastive/data/z10/zheng07/'
 #path = '/mnt/ceph/users/cmodi/contrastive/data/z05-chang/zheng07/'
 
@@ -13,12 +15,13 @@ for key in keys:
     ar = []
     for i_lhc in range(0, 2000):
         if i_lhc %50 ==0:print(i_lhc)
-        f = np.load(path + '%04d/%s.npy'%(i_lhc, key))
+        f = np.load(path + '%04d/%s.npy'%(i_lhc, key)).real
         ar.append(f)
 
     ar = np.array(ar)
     print(ar.shape)
     np.save(path + key, ar)
+
 
 
 ################
