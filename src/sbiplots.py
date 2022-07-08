@@ -81,7 +81,7 @@ def test_diagnostics(x, y, posterior, nsamples=500, rankplot=True, titles=None, 
     #plot predictions
     if ndim > 5: fig, ax = plt.subplots(ndim//5, 5, figsize=(15, 4*ndim//5))
     else: fig, ax = plt.subplots(1, 5, figsize=(15, 4))
-    for j in range(ndim):
+    for j in range(min(ndim, len(ax.flatten()))):
         ax.flatten()[j].errorbar(trues[:, j], mus[:, j], stds[:, j], fmt="none", elinewidth=0.5, alpha=0.5)
         #if j == 0 : ax.flatten()[0].set_ylabel(lbls[iss], fontsize=12)
         ax.flatten()[j].plot(y[:, j], y[:, j], 'k.', ms=0.2, lw=0.5)
@@ -142,7 +142,7 @@ def test_fiducial(x, y, posterior, nsamples=500, rankplot=True, titles=None, sav
     #plot predictions
     if ndim > 5: fig, ax = plt.subplots(ndim//5, 5, figsize=(15, 4*ndim//5))
     else: fig, ax = plt.subplots(1, 5, figsize=(15, 4))
-    for j in range(ndim):
+    for j in range(min(ndim, len(ax.flatten()))):
         axis = ax.flatten()[j]
         axis.errorbar(np.arange(mus.shape[0]), mus[:, j], stds[:, j], fmt="none", elinewidth=0.5, alpha=0.5)
         axis.axhline(trues[0, j], color='k')
