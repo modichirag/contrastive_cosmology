@@ -23,7 +23,7 @@ def Nbody():
     return None 
 
 
-def Halos(halo_folder, z=0.5, Om=None, Ob=None, h=None, ns=None, s8=None, Mnu=0.): 
+def Halos(halo_folder, z, Om=None, Ob=None, h=None, ns=None, s8=None, Mnu=0., finder='FoF'): 
     ''' read in Quijote halo catalog given the folder and snapshot # and store it as
     a nbodykit HaloCatalog object. The HaloCatalog object is convenient for 
     populating with galaxies and etc.
@@ -35,6 +35,7 @@ def Halos(halo_folder, z=0.5, Om=None, Ob=None, h=None, ns=None, s8=None, Mnu=0.
         directory that contains the halo catalogs e.g. on tiger it'd be
         something like: /projects/QUIJOTE/Halos/latin_hypercube/HR_0/
 
+    z : redshift to read the catalogs at
     Return 
     ------
     cat : nbodykit.lab.HaloCatalog 
@@ -59,20 +60,26 @@ def Halos(halo_folder, z=0.5, Om=None, Ob=None, h=None, ns=None, s8=None, Mnu=0.
     Hz = 100.0 * np.sqrt(Om * (1. + z)**3 + Ol) # km/s/(Mpc/h)
 
     # read FOF catalog (~90.6 ms) 
-    Fof = readfof.FoF_catalog(halo_folder, snapnum, read_IDs=False,
-            long_ids=False, swap=False, SFR=False)
-    group_data = {}  
-    group_data['Length']    = Fof.GroupLen
-    group_data['Position']  = Fof.GroupPos/1e3
-    group_data['Velocity']  = Fof.GroupVel * (1 + z) # km/s
-    group_data['Mass']      = Fof.GroupMass*1e10
-    # calculate velocity offset
-    rsd_factor = (1. + z) / Hz
-    group_data['VelocityOffset'] = group_data['Velocity'] * rsd_factor
-    # save to ArryCatalog for consistency
-    cat = NBlab.ArrayCatalog(group_data, BoxSize=np.array([1000., 1000., 1000.])) 
+    if finder == 'FoF':
+        Fof = readfof.FoF_catalog(halo_folder, snapnum, read_IDs=False,
+                long_ids=False, swap=False, SFR=False)
+        group_data = {}  
+        group_data['Length']    = Fof.GroupLen
+        group_data['Position']  = Fof.GroupPos/1e3
+        group_data['Velocity']  = Fof.GroupVel * (1 + z) # km/s
+        group_data['Mass']      = Fof.GroupMass*1e10
+        # calculate velocity offset
+        rsd_factor = (1. + z) / Hz
+        group_data['VelocityOffset'] = group_data['Velocity'] * rsd_factor
+        # save to ArryCatalog for consistency
+        cat = NBlab.ArrayCatalog(group_data, BoxSize=np.array([1000., 1000., 1000.])) 
+        cat['Length'] = group_data['Length']
+        cat.attrs['rsd_factor'] = rsd_factor 
+
+    elif finder == 'Rockstar':
+        cat = NBlab.BigFileCatalog(halo_folder + 'snapshot_%d.bf'%snapnum)
+
     cat = NBlab.HaloCatalog(cat, cosmo=cosmo, redshift=z, mdef='vir') 
-    cat['Length'] = group_data['Length']
 
     cat.attrs['Om'] = Om
     cat.attrs['Ob'] = Ob
@@ -81,5 +88,6 @@ def Halos(halo_folder, z=0.5, Om=None, Ob=None, h=None, ns=None, s8=None, Mnu=0.
     cat.attrs['ns'] = ns
     cat.attrs['s8'] = s8
     cat.attrs['Hz'] = Hz # km/s/(Mpc/h)
-    cat.attrs['rsd_factor'] = rsd_factor 
     return cat
+
+

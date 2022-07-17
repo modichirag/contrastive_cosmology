@@ -10,7 +10,7 @@ import quijote as Quijote
 
 
 
-def Quijote_LHC_HR(i, z=0.5): 
+def Quijote_LHC_HR(i, z=1.0, finder='FoF'): 
     ''' Read halo catalog from the high resolution Quijote LHC. 
 
 
@@ -22,6 +22,10 @@ def Quijote_LHC_HR(i, z=0.5):
     z : float
         redshift of the halo catalog. Quijote halo catalogs are available at
         z = 0, 0.5, 1., 2., and 3.
+    
+    finder : str
+             Halo finder, FoF or Rockstar
+    
 
     Return
     ------
@@ -30,19 +34,18 @@ def Quijote_LHC_HR(i, z=0.5):
     '''
     # directory that contains the Quijote LHC HR
     #halo_folder = "/mnt/ceph/users/fvillaescusa/Quijote/Halos/FoF/latin_hypercube_nwLH/%d/"%i
-    halo_folder = "/mnt/ceph/users/fvillaescusa/Quijote/Halos/FoF/latin_hypercube/HR_%d/"%i
-    #halo_folder = os.path.join(os.environ['QUIJOTE_DIR'],
-    #        'Halos/latin_hypercube', 'HR_%i' % i)
+    if finder == 'FoF': halo_folder = "/mnt/ceph/users/fvillaescusa/Quijote/Halos/FoF/latin_hypercube/HR_%d/"%i
+    elif finder == 'Rockstar': halo_folder = "/mnt/ceph/users/cmodi/Quijote/latin_hypercube_HR/Rockstar/%d/"%i
     
     # look up cosmology of the LHC realization
     Om, Ob, h, ns, s8 = Quijote_LHC_cosmo(i)
     
     # read halo catalog 
-    halos = Quijote.Halos(halo_folder, z, Om=Om, Ob=Ob, h=h, ns=ns, s8=s8, Mnu=0.)
+    halos = Quijote.Halos(halo_folder, z, Om=Om, Ob=Ob, h=h, ns=ns, s8=s8, Mnu=0., finder=finder)
     return halos
 
 
-def Quijote_fiducial_HR(i, z=0.5): 
+def Quijote_fiducial_HR(i, z=1.0, finder='FoF'): 
     ''' Read halo catalog from the high resolution Quijote at fiducial cosmology. 
 
 
@@ -55,6 +58,9 @@ def Quijote_fiducial_HR(i, z=0.5):
         redshift of the halo catalog. Quijote halo catalogs are available at
         z = 0, 0.5, 1., 2., and 3.
 
+    finder : str
+             Halo finder, FoF or Rockstar
+    
     Return
     ------
     cat : nbodykit.lab.HaloCatalog 
@@ -67,7 +73,7 @@ def Quijote_fiducial_HR(i, z=0.5):
     Om, Ob, h, ns, s8 = Quijote_fiducial_cosmo() 
     
     # read halo catalog 
-    halos = Quijote.Halos(halo_folder, z, Om=Om, Ob=Ob, h=h, ns=ns, s8=s8, Mnu=0.)
+    halos = Quijote.Halos(halo_folder, z, Om=Om, Ob=Ob, h=h, ns=ns, s8=s8, Mnu=0., finder=finder)
     return halos
 
 
