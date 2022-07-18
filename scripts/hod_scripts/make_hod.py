@@ -18,6 +18,7 @@ import tools, hodtools
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--model', type=str, help='HOD model name')
 parser.add_argument('--z', type=float, help='redshift')
+parser.add_argument('--finder', type=str, help='which halo finder')
 parser.add_argument('--id0', type=int, default=0, help='first quijote seed')
 parser.add_argument('--id1', type=int, default=2000, help='last quijote seed')
 parser.add_argument('--seed', type=int, default=0, help='seed between 0-999')
@@ -31,6 +32,7 @@ parser.add_argument('--rewrite', type=int, default=0, help='rewrite files which 
 parser.add_argument('--fiducial', type=int, default=0, help='for fiducial simulations')
 args = parser.parse_args()
 
+print(args)
 
 m_hod = args.model
 id0, id1, nhod = args.id0, args.id1, args.nhod
@@ -43,42 +45,31 @@ if nbar != 0: data_dir = '/mnt/ceph/users/cmodi/contrastive/data/z%02d-N%04d/'%(
 else: data_dir = '/mnt/ceph/users/cmodi/contrastive/data/z%02d/'%(zred*10)
 if args.suffix != "": data_dir = data_dir[:-1] + '-%s/'%args.suffix
 os.makedirs(data_dir, exist_ok=True)
-if (args.fiducial == 1) & (args.suffix2 == ""): args.suffix2 = "fid"
-if args.suffix2 == "": data_dir = data_dir + '%s/'%args.model
-else: data_dir = data_dir + '%s/'%(args.model + "-" + args.suffix2)
+
+#model suffix
+namefid, namefinder = '', ''
+if (args.fiducial == 1) : namefid = '-fid'
+if args.finder == 'rockstar': namefinder = '-rock'
+if args.suffix2 != "": args.suffix2 =  "-" + args.suffix2
+data_dir = data_dir + '%s/'%(args.model + namefid + namefinder + args.suffix2)
+print("Save in data directory : ", data_dir)
 os.makedirs(data_dir, exist_ok=True)
 #
-
-def setup_hod(halos, nbar=nbar, satfrac=satfrac, bs=bs, alpha_fid=alpha_fid, model='zheng07'):
-    if nbar != 0.:
-        hmass = halos['Mass'].compute()
-        numdhalos = hmass.size/bs**3
-        numhalos_nbarf = int(nbar * bs**3 * (1-satfrac))
-        print("Halo number density and halo fraction used : ",numdhalos/1e-4, numhalos_nbarf/hmass.size)
-        #raise Exception if (numhalos_nbarf/hmass.size) # diagnostics if number of halos < number density
-        #
-        mcut = hmass[:numhalos_nbarf][-1]
-        nsat = satfrac * nbar * bs**3
-        mdiff = (hmass - mcut + mcut*1e-3)[:numhalos_nbarf] ** alpha_fid
-        msum = mdiff.sum()/nsat
-        m1 = msum**(1/alpha_fid)
-        mcut = 10**(np.log10(mcut) + 0.1)  ##offset by log_sigma/2 to account for scatter
-        if model == 'zheng07_ab': mcut *= 0.9
-        print("M1, mcut : ", np.log10(m1), np.log10(mcut))
-    else: mcut, m1 = 10**13., 10**13.9
-    return mcut, m1
-
-
 
 for i_lhc in range(id0, id1):
     print('LHC %i' % i_lhc)
     # read in halo catalog
     if args.fiducial: 
-        halos = Halos.Quijote_fiducial_HR(i_lhc, z=zred)
+        halos = Halos.Quijote_fiducial_HR(i_lhc, z=zred, finder=args.finder)
     else:
-        halos = Halos.Quijote_LHC_HR(i_lhc, z=zred)
+        halos = Halos.Quijote_LHC_HR(i_lhc, z=zred, finder=args.finder)
 
-    mcut, m1 = setup_hod(halos, model=args.model)
+    
+    print(halos['Mass'].compute())
+    halos = halos.sort('Mass', reverse=True)
+    print(halos['Mass'].compute())
+
+    mcut, m1 = hodtools.setup_hod(halos, nbar=nbar, satfrac=satfrac, bs=bs, alpha_fid=alpha_fid, model=args.model)
     ps, ngals, gals, pmus, pells, hods = [], [], [], [], [], []
     ngals = []
     

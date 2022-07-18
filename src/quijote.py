@@ -23,7 +23,7 @@ def Nbody():
     return None 
 
 
-def Halos(halo_folder, z, Om=None, Ob=None, h=None, ns=None, s8=None, Mnu=0., finder='FoF'): 
+def Halos(halo_folder, z, Om=None, Ob=None, h=None, ns=None, s8=None, Mnu=0., finder='fof'): 
     ''' read in Quijote halo catalog given the folder and snapshot # and store it as
     a nbodykit HaloCatalog object. The HaloCatalog object is convenient for 
     populating with galaxies and etc.
@@ -60,7 +60,7 @@ def Halos(halo_folder, z, Om=None, Ob=None, h=None, ns=None, s8=None, Mnu=0., fi
     Hz = 100.0 * np.sqrt(Om * (1. + z)**3 + Ol) # km/s/(Mpc/h)
 
     # read FOF catalog (~90.6 ms) 
-    if finder == 'FoF':
+    if finder == 'fof':
         Fof = readfof.FoF_catalog(halo_folder, snapnum, read_IDs=False,
                 long_ids=False, swap=False, SFR=False)
         group_data = {}  
@@ -76,7 +76,7 @@ def Halos(halo_folder, z, Om=None, Ob=None, h=None, ns=None, s8=None, Mnu=0., fi
         cat['Length'] = group_data['Length']
         cat.attrs['rsd_factor'] = rsd_factor 
 
-    elif finder == 'Rockstar':
+    elif finder == 'rockstar':
         cat = NBlab.BigFileCatalog(halo_folder + 'snapshot_%d.bf'%snapnum)
 
     cat = NBlab.HaloCatalog(cat, cosmo=cosmo, redshift=z, mdef='vir') 
