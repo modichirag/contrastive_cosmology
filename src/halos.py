@@ -10,7 +10,7 @@ import quijote as Quijote
 
 
 
-def Quijote_LHC_HR(i, z=1.0, finder='FoF'): 
+def Quijote_LHC_HR(i, z=1.0, finder='fof'): 
     ''' Read halo catalog from the high resolution Quijote LHC. 
 
 
@@ -34,8 +34,8 @@ def Quijote_LHC_HR(i, z=1.0, finder='FoF'):
     '''
     # directory that contains the Quijote LHC HR
     #halo_folder = "/mnt/ceph/users/fvillaescusa/Quijote/Halos/FoF/latin_hypercube_nwLH/%d/"%i
-    if finder == 'FoF': halo_folder = "/mnt/ceph/users/fvillaescusa/Quijote/Halos/FoF/latin_hypercube/HR_%d/"%i
-    elif finder == 'Rockstar': halo_folder = "/mnt/ceph/users/cmodi/Quijote/latin_hypercube_HR/Rockstar/%d/"%i
+    if finder == 'fof': halo_folder = "/mnt/ceph/users/fvillaescusa/Quijote/Halos/FoF/latin_hypercube/HR_%d/"%i
+    elif finder == 'rockstar': halo_folder = "/mnt/ceph/users/cmodi/Quijote/latin_hypercube_HR/Rockstar/%d/"%i
     
     # look up cosmology of the LHC realization
     Om, Ob, h, ns, s8 = Quijote_LHC_cosmo(i)
