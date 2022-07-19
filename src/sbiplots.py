@@ -44,7 +44,7 @@ def test_diagnostics(x, y, posterior, nsamples=500, rankplot=True, titles=None, 
     mus, stds = [], []
     trues = []
     for ii in range(x.shape[0]):
-        if ii%100 == 0: print("Test iteration : ",ii)
+        if ii%1000 == 0: print("Test iteration : ",ii)
         if np.random.uniform() > test_frac: continue
         posterior_samples = posterior.sample((nsamples,),
                                              x=torch.from_numpy(x[ii].astype('float32')), 
@@ -77,6 +77,29 @@ def test_diagnostics(x, y, posterior, nsamples=500, rankplot=True, titles=None, 
     plt.suptitle(suptitle)
     plt.tight_layout()
     plt.savefig(savepath + 'rankplot%s.png'%suffix)
+
+
+    #plot ranks
+    plt.figure(figsize=(15, 4))
+    ncounts = ranks.shape[0]/nbins
+    unicov = [np.sort(np.random.uniform(0, 1, ranks.shape[0])) for j in range(20)]
+    for i in range(5):
+        plt.subplot(151 + i)
+        xr = np.sort(ranks[:, i])
+        xr = xr/xr[-1]
+        cdf = np.arange(xr.size)/xr.size
+        for j in range(len(unicov)):
+            plt.plot(unicov[j], cdf, lw=1, color='gray', alpha=0.2)
+        plt.plot(xr, cdf, lw=2)
+        plt.title(titles[i])
+        plt.xlabel('rank')
+        plt.ylabel('CDF')
+        plt.grid()
+    suptitle = savepath.split('/')[-2]
+    plt.suptitle(suptitle)
+    plt.tight_layout()
+    plt.savefig(savepath + 'coverage%s.png'%suffix)
+
 
     #plot predictions
     if ndim > 5: fig, ax = plt.subplots(ndim//5, 5, figsize=(15, 4*ndim//5))
