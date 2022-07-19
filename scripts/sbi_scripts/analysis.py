@@ -4,7 +4,7 @@ import sys, os
 sys.path.append('../../src/')
 import sbitools, sbiplots
 import argparse
-import pickle
+import pickle, json
 import dataloaders
 
 parser = argparse.ArgumentParser(description='Process some integers.')
@@ -43,6 +43,8 @@ cosmonames = cosmonames + ["Mcut", "sigma", "M0", "M1", "alpha"]
 print("Which dataloader to use?")
 dataloader = getattr(dataloaders, args.dataloader)
 print(dataloader)
+with open(savepath + 'args.json', 'w') as fp:
+    json.dump(vars(args), fp, indent=4, sort_keys=True)
 
 #####
 #####
@@ -91,6 +93,24 @@ def diagnostics_fiducial(data, posterior, scaler):
         fig, ax = sbiplots.plot_posterior(features[ii], params[ii], posterior, titles=cosmonames, savename=savename)
     sbiplots.test_fiducial(features, params, posterior, titles=cosmonames, savepath=savepath, test_frac=1., nsamples=500, suffix='-fid')
 
+def diagnostics_rockstar(data, posterior, scaler):
+    print("Diagnostics for rockstar data")
+    import copy
+    argsf = copy.deepcopy(args)
+    argsf.datapath = args.datapath[:-1] + "-rock/"
+    print(argsf.datapath)
+    argsf.fiducial = 0
+    features, params = dataloader(argsf)
+    features = features.reshape(-1, features.shape[-1])
+    params = params.reshape(-1, params.shape[-1])
+    features = sbitools.standardize(features, scaler=scaler, log_transform=args.logit)[0]
+
+    for _ in range(args.nposterior):
+        ii = np.random.randint(0, features.shape[0], 1)[0]
+        savename = savepath + 'posterior-rock%04d.png'%(ii/data.nsim)
+        fig, ax = sbiplots.plot_posterior(features[ii], params[ii], posterior, titles=cosmonames, savename=savename)
+    sbiplots.test_diagnostics(features, params, posterior, titles=cosmonames, savepath=savepath, test_frac=0.05, nsamples=500, suffix='-rock')
+
 def diagnostics_train(data, posterior):
     print("Diagnostics for training dataset")
     for _ in range(args.nposterior):
@@ -109,6 +129,7 @@ if params.shape[-1] > len(cosmonames):
 print(cosmonames)
 
 #diagnostics(data, posterior)
-diagnostics_fiducial(data, posterior, scaler)
-diagnostics_train(data, posterior)
+#diagnostics_rockstar(data, posterior, scaler)
+#diagnostics_fiducial(data, posterior, scaler)
+#diagnostics_train(data, posterior)
 
