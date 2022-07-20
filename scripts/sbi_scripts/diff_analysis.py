@@ -48,6 +48,8 @@ def diagnostics(posterior, scaler):
     argsf = copy.deepcopy(args_model)
     argsf.datapath = args.datapath
     print(argsf.datapath)
+    argsf.fiducial = args.fiducial
+
     features, params = dataloader(argsf)
     nsim = features.shape[1]
     features = features.reshape(-1, features.shape[-1])
