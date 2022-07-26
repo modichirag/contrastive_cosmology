@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import sys, os
 sys.path.append('../../src/')
 import sbitools, sbiplots
@@ -56,6 +56,7 @@ def analysis(features, params):
     data.trainx, data.testx, scaler = sbitools.standardize(data.trainx, secondary=data.testx, log_transform=args.logit)
     with open(savepath + "scaler.pkl", "wb") as handle:
         pickle.dump(scaler, handle)
+    np.save(savepath + 'tidx', data.tidx)
 
     ### SBI
     prior = sbitools.sbi_prior(params.reshape(-1, params.shape[-1]), offset=0.2)
@@ -93,23 +94,7 @@ def diagnostics_fiducial(data, posterior, scaler):
         fig, ax = sbiplots.plot_posterior(features[ii], params[ii], posterior, titles=cosmonames, savename=savename)
     sbiplots.test_fiducial(features, params, posterior, titles=cosmonames, savepath=savepath, test_frac=1., nsamples=500, suffix='-fid')
 
-def diagnostics_rockstar(data, posterior, scaler):
-    print("Diagnostics for rockstar data")
-    import copy
-    argsf = copy.deepcopy(args)
-    argsf.datapath = args.datapath[:-1] + "-rock/"
-    print(argsf.datapath)
-    argsf.fiducial = 0
-    features, params = dataloader(argsf)
-    features = features.reshape(-1, features.shape[-1])
-    params = params.reshape(-1, params.shape[-1])
-    features = sbitools.standardize(features, scaler=scaler, log_transform=args.logit)[0]
 
-    for _ in range(args.nposterior):
-        ii = np.random.randint(0, features.shape[0], 1)[0]
-        savename = savepath + 'posterior-rock%04d.png'%(ii/data.nsim)
-        fig, ax = sbiplots.plot_posterior(features[ii], params[ii], posterior, titles=cosmonames, savename=savename)
-    sbiplots.test_diagnostics(features, params, posterior, titles=cosmonames, savepath=savepath, test_frac=0.05, nsamples=500, suffix='-rock')
 
 def diagnostics_train(data, posterior):
     print("Diagnostics for training dataset")
@@ -128,8 +113,9 @@ if params.shape[-1] > len(cosmonames):
     cosmonames = cosmonames + ["a_%d"%i for i in range(params.shape[-1] - len(cosmonames))]
 print(cosmonames)
 
-#diagnostics(data, posterior)
+diagnostics(data, posterior)
+diagnostics_train(data, posterior)
+try: diagnostics_fiducial(data, posterior, scaler)
+except: pass
 #diagnostics_rockstar(data, posterior, scaler)
-#diagnostics_fiducial(data, posterior, scaler)
-#diagnostics_train(data, posterior)
 

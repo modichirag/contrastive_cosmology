@@ -8,6 +8,9 @@ import pickle, json
 import dataloaders
 import torch
 import copy
+import warnings
+np.seterr(all='raise')
+warnings.filterwarnings("error")
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--modelpath', type=str, help='modelpath in contrastive analysis folder')
@@ -37,7 +40,7 @@ del args
 def get_features(datapath, fiducial=0):
     argsf = copy.deepcopy(args_model)
     argsf.datapath = datapath
-    print(argsf.datapath)
+    print("\n"+argsf.datapath)
     argsf.fiducial = fiducial
     #
     features, params = dataloader(argsf)
@@ -52,7 +55,7 @@ def get_features(datapath, fiducial=0):
 ############
 cosmonames = r'$\Omega_m$,$\Omega_b$,$h$,$n_s$,$\sigma_8$'.split(",")
 cosmonames = cosmonames + ["Mcut", "sigma", "M0", "M1", "alpha"]
-dfrac, nsamples = 0.05, 500
+dfrac, nsamples = 0.05, 200
 
 #
 fig, ax = plt.subplots(1, 5, figsize=(15, 4))
@@ -77,20 +80,22 @@ features, params = get_features(datapath)
 trues, mus, stds, ranks = sbiplots.get_ranks(features, params, posterior, test_frac=dfrac, nsamples=nsamples)
 fig, ax = sbiplots.plot_coverage(ranks, figure=[fig, ax], titles=cosmonames, label='Rockstar-ab', plotscatter=False)
 
-datapath =  'z10-N0001/zheng07-fid/'
+datapath =  'z10-N0001/zheng07_velab/'
 features, params = get_features(datapath)
 trues, mus, stds, ranks = sbiplots.get_ranks(features, params, posterior, test_frac=dfrac, nsamples=nsamples)
+fig, ax = sbiplots.plot_coverage(ranks, figure=[fig, ax], titles=cosmonames, label='FoF-velab', plotscatter=False)
+
+datapath =  'z10-N0001/zheng07_velab-rock/'
+features, params = get_features(datapath)
+trues, mus, stds, ranks = sbiplots.get_ranks(features, params, posterior, test_frac=dfrac, nsamples=nsamples)
+fig, ax = sbiplots.plot_coverage(ranks, figure=[fig, ax], titles=cosmonames, label='Rockstar-velab', plotscatter=False)
+
+datapath =  'z10-N0001/zheng07-fid/'
+features, params = get_features(datapath, fiducial=1)
+trues, mus, stds, ranks = sbiplots.get_ranks(features, params, posterior, test_frac=1.0, nsamples=nsamples)
 fig, ax = sbiplots.plot_coverage(ranks, figure=[fig, ax], titles=cosmonames, label='FOF (fid)', plotscatter=False)
 
 ax[0].legend()
 
-plt.savefig(modelpath + 'compare_coverage.py')
-
-#     for _ in range(argsf.nposterior):
-#         ii = np.random.randint(0, features.shape[0], 1)[0]
-#         savename = modelpath + 'posterior-%s%04d.png'%(args.suffix, ii/nsim)
-#         fig, ax = sbiplots.plot_posterior(features[ii], params[ii], posterior, titles=cosmonames, savename=savename, ndim=5)
-#     sbiplots.test_diagnostics(features, params, posterior, titles=cosmonames, savepath=modelpath, test_frac=0.05, nsamples=500, suffix='-%s'%args.suffix)
-
-# diagnostics(posterior, scaler)
+plt.savefig(modelpath + 'compare_coverage.png')
 
