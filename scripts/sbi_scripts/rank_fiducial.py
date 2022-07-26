@@ -1,3 +1,7 @@
+'''A simple test for Gaussian posterior to make expected rank distribution
+for simulations generated from sample parameter point
+'''
+
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
