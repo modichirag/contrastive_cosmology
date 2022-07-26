@@ -38,13 +38,13 @@ nbar, satfrac = args.nbar, args.satfrac
 #
 bs, nc = 1000, 256
 pm = ParticleMesh(Nmesh=[nc, nc, nc], BoxSize=bs, dtype='f8')
-if nbar != 0: data_dir = '/mnt/ceph/users/cmodi/contrastive/data/z%02d-N%04d/'%(zred*10, nbar/1e-4)
-else: data_dir = '/mnt/ceph/users/cmodi/contrastive/data/z%02d/'%(zred*10)
-if args.suffix != "": data_dir = data_dir[:-1] + '-%s/'%args.suffix
-os.makedirs(data_dir, exist_ok=True)
-if args.suffix2 == "": data_dir = data_dir + '%s/'%args.model
-else: data_dir = data_dir + '%s/'%(args.model + "-" + args.suffix2)
-os.makedirs(data_dir, exist_ok=True)
+# if nbar != 0: data_dir = '/mnt/ceph/users/cmodi/contrastive/data/z%02d-N%04d/'%(zred*10, nbar/1e-4)
+# else: data_dir = '/mnt/ceph/users/cmodi/contrastive/data/z%02d/'%(zred*10)
+# if args.suffix != "": data_dir = data_dir[:-1] + '-%s/'%args.suffix
+# os.makedirs(data_dir, exist_ok=True)
+# if args.suffix2 == "": data_dir = data_dir + '%s/'%args.model
+# else: data_dir = data_dir + '%s/'%(args.model + "-" + args.suffix2)
+# os.makedirs(data_dir, exist_ok=True)
 #
 
 def setup_hod(halos, nbar=nbar, satfrac=satfrac, bs=bs, alpha_fid=alpha_fid):
@@ -61,7 +61,9 @@ def setup_hod(halos, nbar=nbar, satfrac=satfrac, bs=bs, alpha_fid=alpha_fid):
         toret = [numdhalos/1e-4,
                  numhalos_nbarf/hmass.size, 
                  (hmass>mcut).sum()/hmass.size,
-                 (hmass>10**(np.log10(mcut) + 0.8)).sum()/hmass.size,
+                 (hmass> 10**(np.log10(mcut) - 0.2)).sum()/hmass.size,
+                 (hmass>10**(np.log10(mcut) - 0.4)).sum()/hmass.size,
+                 (hmass>10**(np.log10(mcut) - 0.6)).sum()/hmass.size,
                  (hmass>10**(np.log10(mcut) - 0.8)).sum()/hmass.size
              ]
         print(toret)

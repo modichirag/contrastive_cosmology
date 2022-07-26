@@ -9,7 +9,6 @@ from nbodykit.lab import FFTPower, ProjectedFFTPower, ArrayMesh
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from skopt.sampler import Lhs
 #
 sys.path.append('../../src/')
 import halos as Halos
@@ -44,22 +43,6 @@ else: data_dir = data_dir + '%s/'%(args.model + "-" + args.suffix2)
 os.makedirs(data_dir, exist_ok=True)
 #
 
-def sample_HOD(m_hod, nhod, seed): 
-    ''' sample HOD value based on priors set by Parejko+(2013)
-    '''
-    if m_hod == 'zheng07':
-
-        logMmin = [12.5, 14]
-        sigma_logM = [0.3, 0.5]
-        alpha = [0.3, 1.]
-        logM0 = [12.5, 14]
-        logM1 = [13., 14.5]
-        bounds = [logMmin, sigma_logM, logM0, logM1, alpha]
-        hodps = np.array(Lhs().generate(bounds, nhod, random_state=seed))
-        return hodps
-    else: 
-        raise NotImplementedError 
-
 
 for i_lhc in range(id0, id1):
     print('LHC %i' % i_lhc)
@@ -76,7 +59,7 @@ for i_lhc in range(id0, id1):
     if not os.path.isfile(save_dir + 'power_ell.npy') : do_hod = True
     if not do_hod: continue
     #
-    hods = sample_HOD(args.model, nhod, i_lhc)
+    hods = hodtools.sample_HOD_broad(args.model, nhod, i_lhc)
     print(hods.shape)
     #
     ps, ngals, gals, pmus, pells = [], [], [], [], []

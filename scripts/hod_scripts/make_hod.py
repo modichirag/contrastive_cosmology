@@ -1,5 +1,5 @@
 '''
-Generate galaxy catalog
+Generate galaxy catalog conditioned on number density with setup HOD
 '''
 import os, sys 
 import numpy as np 
@@ -55,7 +55,6 @@ data_dir = data_dir + '%s/'%(args.model + namefid + namefinder + args.suffix2)
 print("Save in data directory : ", data_dir)
 os.makedirs(data_dir, exist_ok=True)
 #
-
 for i_lhc in range(id0, id1):
     print('LHC %i' % i_lhc)
     # read in halo catalog
@@ -63,16 +62,18 @@ for i_lhc in range(id0, id1):
         halos = Halos.Quijote_fiducial_HR(i_lhc, z=zred, finder=args.finder)
     else:
         halos = Halos.Quijote_LHC_HR(i_lhc, z=zred, finder=args.finder)
-
+        
     
     print(halos['Mass'].compute())
     halos = halos.sort('Mass', reverse=True)
-    print(halos['Mass'].compute())
+    hmass = halos['Mass'].compute()
+    print(hmass)
+    hsize = hmass.shape[0]
 
     mcut, m1 = hodtools.setup_hod(halos, nbar=nbar, satfrac=satfrac, bs=bs, alpha_fid=alpha_fid, model=args.model)
     ps, ngals, gals, pmus, pells, hods = [], [], [], [], [], []
     ngals = []
-    
+    hfracs = []
     save_dir = data_dir + '%04d/'%i_lhc
     os.makedirs(save_dir, exist_ok=True)        
 
@@ -84,14 +85,18 @@ for i_lhc in range(id0, id1):
         if not os.path.isfile(save_dir + 'power_%d.npy'%i_hod) : do_hod = True
     if not do_hod: continue
     #
+
+    hodmodel = None
     for i_hod in range(nhod): 
         print('  HOD %i' % i_hod)
         # sample HOD
         iseed = args.seed+i_hod
         theta_hod = hodtools.sample_conditional_HOD(m_hod, np.log10(mcut), m1=np.log10(m1), seed=i_lhc*9999+iseed)
-        #print(theta_hod)
         np.save(save_dir+'hodp_%d'%iseed, theta_hod)
-        hod = Galaxies.hodGalaxies(halos, theta_hod, seed=0, hod_model=m_hod)
+        #hod = Galaxies.hodGalaxies(halos, theta_hod, seed=0, hod_model=m_hod)
+        if hodmodel is None: 
+            hodmodel = Galaxies.hodGalaxies_cache(halos, hod_model=m_hod)
+        hod = halos.populate(hodmodel, seed=0, **theta_hod)
         #hod.save(save_dir+'cat_%i.bf' % iseed) 
 
         #calculate some summary numbers on galaxy types
@@ -99,22 +104,27 @@ for i_lhc in range(id0, id1):
         print(galsum)
         ngals.append(galsum['number density'])
         k, p = hodtools.get_power(hod, pm)
-        np.save(save_dir+"power_%d"%iseed, p)
         k, pmu, pell = hodtools.get_power_rsd(hod, pm, Nmu=12)
-        np.save(save_dir+"power_rsd_%d"%iseed, pmu)
-        np.save(save_dir+"power_ell_%d"%iseed, pell)
+        #np.save(save_dir+"power_%d"%iseed, p)
+        #np.save(save_dir+"power_rsd_%d"%iseed, pmu)
+        #np.save(save_dir+"power_ell_%d"%iseed, pell)
 
         ps.append(p)
         pmus.append(pmu)
         pells.append(pell)
         gals.append([galsum['total'], galsum['centrals'], galsum['satellites']])
         hods.append([theta_hod[key] for key in theta_hod.keys()])
+        mlims = [10**(hods[-1][0] - j*hods[-1][1]) for j in range(3)]
+        sigmin = (hods[-1][0] - np.log10(hmass[-1]))/hods[-1][1]
+        hfracs.append([(hmass > mlims[j]).sum()/hsize for j in range(2)] + [sigmin]) 
+        print(hfracs[-1])
 
     np.save(save_dir + "power", np.array(ps))
     np.save(save_dir + "power_rsd", np.array(pmus))
     np.save(save_dir + "power_ell", np.array(pells))
     np.save(save_dir + "gals", np.array(gals))
     np.save(save_dir + "hodp", np.array(hods)) 
+    np.save(save_dir + "hfracs", np.array(hfracs)) 
     #Make PS figure
     print("mean number denisty : ", np.mean(ngals))
     fig, ax = plt.subplots(1, 2, figsize=(9, 4), sharex=True, sharey=True)
