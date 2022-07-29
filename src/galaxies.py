@@ -126,7 +126,12 @@ def hodGalaxies_cache(halos, hod_model='zheng07'):
 
     # populate using HOD
     if hod_model == 'zheng07': 
-        Z07AB = Zheng07Model
+        _Z07AB = Zheng07Model()
+        Z07AB = _Z07AB.to_halotools(halos.cosmo, 
+                                    halos.attrs['redshift'], 
+                                    halos.attrs['mdef'], 
+                                )
+        #Z07AB = Zheng07Model
     elif hod_model == 'zheng07_ab': 
         _Z07AB = AssembiasZheng07Model()
         Z07AB = _Z07AB.to_halotools(halos.cosmo, 

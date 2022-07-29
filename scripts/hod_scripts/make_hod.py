@@ -70,7 +70,7 @@ for i_lhc in range(id0, id1):
     print(hmass)
     hsize = hmass.shape[0]
 
-    mcut, m1 = hodtools.setup_hod(halos, nbar=nbar, satfrac=satfrac, bs=bs, alpha_fid=alpha_fid, model=args.model)
+    mcut, m1 = hodtools.setup_hod(halos, nbar=nbar, satfrac=satfrac, bs=bs, alpha_fid=alpha_fid)
     ps, ngals, gals, pmus, pells, hods = [], [], [], [], [], []
     ngals = []
     hfracs = []
@@ -86,7 +86,7 @@ for i_lhc in range(id0, id1):
     if not do_hod: continue
     #
 
-    hodmodel = None
+    hodmodel, hod = None, None
     for i_hod in range(nhod): 
         print('  HOD %i' % i_hod)
         # sample HOD
@@ -96,7 +96,9 @@ for i_lhc in range(id0, id1):
         #hod = Galaxies.hodGalaxies(halos, theta_hod, seed=0, hod_model=m_hod)
         if hodmodel is None: 
             hodmodel = Galaxies.hodGalaxies_cache(halos, hod_model=m_hod)
-        hod = halos.populate(hodmodel, seed=0, **theta_hod)
+            hod = halos.populate(hodmodel, seed=0, **theta_hod)
+        else:
+            hod.repopulate(**theta_hod)
         #hod.save(save_dir+'cat_%i.bf' % iseed) 
 
         #calculate some summary numbers on galaxy types
