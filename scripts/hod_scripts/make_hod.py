@@ -30,6 +30,7 @@ parser.add_argument('--suffix', type=str, default="", help='suffix for parent fo
 parser.add_argument('--suffix2', type=str, default="", help='suffix for subfolder with model name')
 parser.add_argument('--rewrite', type=int, default=0, help='rewrite files which already exist')
 parser.add_argument('--fiducial', type=int, default=0, help='for fiducial simulations')
+parser.add_argument('--abscatter', type=float, default=0.2, help='scatter of zhengab')
 args = parser.parse_args()
 
 print(args)
@@ -47,11 +48,12 @@ if args.suffix != "": data_dir = data_dir[:-1] + '-%s/'%args.suffix
 os.makedirs(data_dir, exist_ok=True)
 
 #model suffix
-namefid, namefinder = '', ''
+namefid, namefinder, namescatter = '', '', ''
 if (args.fiducial == 1) : namefid = '-fid'
 if args.finder == 'rockstar': namefinder = '-rock'
+if args.abscatter != 0.2: namescatter = '-abs%d'%(args.abscatter*10)
 if args.suffix2 != "": args.suffix2 =  "-" + args.suffix2
-data_dir = data_dir + '%s/'%(args.model + namefid + namefinder + args.suffix2)
+data_dir = data_dir + '%s/'%(args.model + namefid + namefinder + namescatter + args.suffix2)
 print("Save in data directory : ", data_dir)
 os.makedirs(data_dir, exist_ok=True)
 #
@@ -91,7 +93,7 @@ for i_lhc in range(id0, id1):
         print('  HOD %i' % i_hod)
         # sample HOD
         iseed = args.seed+i_hod
-        theta_hod = hodtools.sample_conditional_HOD(m_hod, np.log10(mcut), m1=np.log10(m1), seed=i_lhc*9999+iseed)
+        theta_hod = hodtools.sample_conditional_HOD(m_hod, np.log10(mcut), m1=np.log10(m1), seed=i_lhc*9999+iseed, ab_scatter=args.abscatter)
         np.save(save_dir+'hodp_%d'%iseed, theta_hod)
         #hod = Galaxies.hodGalaxies(halos, theta_hod, seed=0, hod_model=m_hod)
         if hodmodel is None: 
