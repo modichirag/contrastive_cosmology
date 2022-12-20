@@ -1,0 +1,25 @@
+method: random
+metric:
+  goal: maximize
+  name: best_validation_log_probs
+parameters:
+  batch_size:
+    distribution: q_log_uniform_values
+    max: 128
+    min: 8
+    q: 8
+  density_estimator:
+    values:
+      - maf
+  learning_rate:
+    values:
+        - 0.001
+  num_hidden:
+    distribution: q_log_uniform_values
+    max: 128
+    min: 32
+    q: 32
+  num_transforms:
+    distribution: int_uniform
+    max: 10
+    min: 3
