@@ -61,7 +61,7 @@ def hod_pk(args):
 
 
 #####
-def hod_ells(args):
+def hod_ells(args, testing=False):
     datapath = "/mnt/ceph/users/cmodi/contrastive/data/" + args.datapath
     pk = np.load(datapath + '/power_ell.npy')
     pk += 1e8 #add offset to make it positive
@@ -194,11 +194,12 @@ def hod_ells_combine(args):
 
 
 #####
-def hod_ells_offset(args):
+def hod_ells_offset(args, testing=False):
     datapath = "/mnt/ceph/users/cmodi/contrastive/data/" + args.datapath
     pk = np.load(datapath + '/power_ell.npy')
     #pk += 1e8 #add offset to make it positive
     offset = 1e4*np.random.uniform(1, 10, np.prod(pk.shape[:2])).reshape(pk.shape[0], pk.shape[1])
+    #if testing: offset = offset*0. + 1e4
     pk = pk + offset[..., None, None]
     print("Shape of raw power spectra : ", pk.shape)
     k = np.load('/mnt/ceph/users/cmodi/contrastive/data/k-256.npy')
@@ -240,6 +241,7 @@ def hod_ells_offset(args):
     if args.fithod == 1: 
         hod_params = np.load(datapath + 'hodp.npy')
         print(cosmo_params.shape, hod_params.shape)
+        #if testing: hod_params = np.concatenate([hod_params, np.log10(1. + offset)[..., None]], axis=-1)
         hod_params = np.concatenate([hod_params, np.log10(offset)[..., None]], axis=-1)
         nhodp = hod_params.shape[-1]
         print(cosmo_params.shape, hod_params.shape)

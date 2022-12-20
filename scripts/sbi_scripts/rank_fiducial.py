@@ -25,19 +25,30 @@ parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--id0', type=int, default=0, help='first quijote seed')
 parser.add_argument('--nsim', type=int, default=1, help='last quijote seed')
 parser.add_argument('--mode', type=str, default='sample', help='last quijote seed')
+parser.add_argument('--l0', type=float, default=0.0, help='lower val for uniform prior')
+parser.add_argument('--l1', type=float, default=1.0, help='upper val for uniform prior')
+parser.add_argument('--mu', type=float, default=0.0, help='mean of normal')
+parser.add_argument('--std', type=float, default=1.0, help='std of normal')
+parser.add_argument('--prior', type=str, default='normal', help='upper val for uniform prior')
+
 args = parser.parse_args()
 
 
 folder = '/mnt/ceph/users/cmodi/contrastive/analysis/rank_fiducial/'
-suffix = 'normal-mu3p0s1p0_noise0p5/'
-#suffix = 'uniform-0p0-1p0_noise0p5/'
-savefolder = folder + suffix
-os.makedirs(savefolder, exist_ok=True)
-mu, std = 3.0, 1.0
-l0, l1 = 0.0, 1.0
+mu, std = args.mu, args.std
+l0, l1 = args.l0, args.l1
 noise = 0.5
 ptrue = [0.32, 0.4]
+#
+if args.prior == 'normal': suffix = 'normal-mu%dp%ds%dp%d_noise0p5/'%(mu%10, (mu*10)%10, std%10, (std*10)%10)
+elif args.prior == 'uniform': suffix = 'uniform-%dp%d-%dp%d_noise0p5/'%(l0%10, (l0*10)%10, l1%10, (l1*10)%10)
+print(suffix)
+
+savefolder = folder + suffix
+os.makedirs(savefolder, exist_ok=True)
+print(savefolder)
 np.save(savefolder + 'ptrue', ptrue + [noise])
+
 
 ###
 def simulation(p, noise, seed=0):
@@ -108,6 +119,7 @@ def check_rank_hist():
 	  ax[j].axhline(ncounts, color='k')
 	  ax[j].axhline(ncounts + ncounts**0.5, color='k', ls="--")
 	  ax[j].axhline(ncounts - ncounts**0.5, color='k', ls="--")
+	plt.suptitle(suffix)
 	plt.savefig(savefolder + '/rankhist')
 	plt.close()
 

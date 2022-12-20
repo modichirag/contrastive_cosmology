@@ -6,6 +6,8 @@ import sbitools, sbiplots
 import argparse
 import pickle, json
 import dataloaders
+from io import StringIO
+
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--dataloader', type=str, help='which dataloader to use')
@@ -24,6 +26,8 @@ parser.add_argument('--nposterior', type=int, default=10, help='how many posteri
 parser.add_argument('--ampnorm', type=int, default=0, help='normalize at large scales by amplitude, default=0')
 parser.add_argument('--ells', type=str, default="024", help='which ells')
 parser.add_argument('--logit', type=int, default=1, help='take log transform of pells')
+parser.add_argument('--standardize', type=int, default=1, help='whiten the dataset')
+parser.add_argument('--retrain', type=int, default=0, help='retrain the network')
 args = parser.parse_args()
 
 np.random.seed(args.seed)
@@ -53,16 +57,26 @@ def analysis(features, params):
     data = sbitools.test_train_split(features, params, train_size_frac=0.8)
 
     ### Standaradize
-    data.trainx, data.testx, scaler = sbitools.standardize(data.trainx, secondary=data.testx, log_transform=args.logit)
+    if args.standardize: 
+        data.trainx, data.testx, scaler = sbitools.standardize(data.trainx, secondary=data.testx, log_transform=args.logit)
+    else: scaler = None
     with open(savepath + "scaler.pkl", "wb") as handle:
         pickle.dump(scaler, handle)
     np.save(savepath + 'tidx', data.tidx)
 
     ### SBI
     prior = sbitools.sbi_prior(params.reshape(-1, params.shape[-1]), offset=0.2)
+    print("output in a file now")
+    tmp_out = StringIO()
+    sys.stdout = tmp_out
     posterior = sbitools.sbi(data.trainx, data.trainy, prior, \
                                   model=args.model, nlayers=args.nlayers, \
-                                  nhidden=args.nhidden, batch_size=args.batch, savepath=savepath)
+                                  nhidden=args.nhidden, batch_size=args.batch, savepath=savepath, retrain=bool(args.retrain))
+    sys.stdout = sys.__stdout__
+    print(tmp_out.getvalue())
+    with open(savepath + 'fit.log', 'w') as f:
+        f.write(tmp_out.getvalue())
+
     return data, posterior, scaler
 
 
@@ -107,6 +121,7 @@ def diagnostics_train(data, posterior):
 
 #############
 features, params = dataloader(args)
+print("features and params shapes : ", features.shape, params.shape)
 data, posterior, scaler = analysis(features, params)
 #
 if params.shape[-1] > len(cosmonames): 
@@ -115,7 +130,7 @@ print(cosmonames)
 
 diagnostics(data, posterior)
 diagnostics_train(data, posterior)
-try: diagnostics_fiducial(data, posterior, scaler)
-except: pass
+#try: diagnostics_fiducial(data, posterior, scaler)
+#except: pass
 #diagnostics_rockstar(data, posterior, scaler)
 
