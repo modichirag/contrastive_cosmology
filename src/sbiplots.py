@@ -8,6 +8,9 @@ from timeout import timeout
 import sys, os, errno
 #warnings.filterwarnings("error")
 
+cosmonames = r'$\Omega_m$,$\Omega_b$,$h$,$n_s$,$\sigma_8$'.split(",")
+cosmonames = cosmonames + ["Mcut", "sigma", "M0", "M1", "alpha"]
+
 ###
 def plot_ranks_histogram(ranks, nbins=10, npars=5, titles=None, savepath=None, figure=None, suffix=""):
 
@@ -76,7 +79,7 @@ def plot_coverage(ranks, npars=5, titles=None, savepath=None, figure=None, suffi
 
 
 ###
-def plot_posterior(x, y, posterior, nsamples=1000, titles=None, savename="", ndim=None, sample_with='rejection'):
+def plot_posterior(x, y, posterior, nsamples=1000, titles=None, savename="", ndim=None):
     
     posterior_samples = posterior.sample((nsamples,), x=torch.from_numpy(x.astype('float32'))).detach().numpy()
     mu, std = posterior_samples.mean(axis=0), posterior_samples.std(axis=0)
@@ -99,12 +102,14 @@ def plot_posterior(x, y, posterior, nsamples=1000, titles=None, savename="", ndi
         for i in range(ndim): 
             axar[i, i].set_title(titles[i])
 
-    if savename != "": plt.savefig(savename)
+    if savename != "": 
+        plt.savefig(savename)
+        plt.close()
     return fig, axar
 
 
 ###
-@timeout(180, os.strerror(errno.ETIMEDOUT))
+@timeout(1000, os.strerror(errno.ETIMEDOUT))
 def get_ranks(x, y, posterior, test_frac=1.0, nsamples=500, ndim=None):
     if ndim is None:
         ndim = y.shape[1]
@@ -144,7 +149,8 @@ def plot_predictions(trues, mus, stds, npars=5, titles=None, savepath=None, suff
     if npars > 5: fig, ax = plt.subplots(npars//5, 5, figsize=(15, 4*npars//5))
     else: fig, ax = plt.subplots(1, 5, figsize=(15, 4))
     for j in range(min(npars, len(ax.flatten()))):
-        ax.flatten()[j].errorbar(trues[:, j], mus[:, j], stds[:, j], fmt="none", elinewidth=0.5, alpha=0.5)
+        if stds is not None: ax.flatten()[j].errorbar(trues[:, j], mus[:, j], stds[:, j], fmt="none", elinewidth=0.5, alpha=0.5)
+        else: ax.flatten()[j].plot(trues[:, j], mus[:, j], ".", alpha=0.5)
         #if j == 0 : ax.flatten()[0].set_ylabel(lbls[iss], fontsize=12)
         ax.flatten()[j].plot(trues[:, j], trues[:, j], 'k.', ms=0.2, lw=0.5)
         ax.flatten()[j].grid(which='both', lw=0.5)
@@ -155,7 +161,7 @@ def plot_predictions(trues, mus, stds, npars=5, titles=None, savepath=None, suff
         suptitle = savepath.split('/')[-2]
         plt.suptitle(suptitle)
         plt.tight_layout()
-        plt.savefig(savepath + 'coverage%s.png'%suffix)
+        plt.savefig(savepath + 'predictions%s.png'%suffix)
     return fig, ax
 
 
@@ -171,8 +177,11 @@ def test_diagnostics(x, y, posterior, nsamples=500, titles=None, savepath="", te
 
     #plot ranks and coverage
     _ = plot_ranks_histogram(ranks, titles=titles, savepath=savepath, suffix=suffix)
+    plt.close()
     _ = plot_coverage(ranks, titles=titles, savepath=savepath, suffix=suffix)
+    plt.close()
     _ = plot_predictions(trues, mus, stds, npars=ndim, titles=titles, savepath=savepath, suffix=suffix)
+    plt.close()
 
     
 
@@ -207,5 +216,21 @@ def test_fiducial(x, y, posterior, nsamples=500, rankplot=True, titles=None, sav
     plt.suptitle(suptitle)
     plt.tight_layout()
     plt.savefig(savepath + 'predictions%s.png'%suffix)
+    
+
+
+###
+def mlp_diagnostics(x, y, model, titles=None, savepath="", test_frac=1.0, suffix=""):
+
+    ndim = y.shape[1]
+    nsamples = int(test_frac*x.shape[0])
+    idx = np.random.randint(0, x.shape[0], nsamples)
+    inp = torch.tensor(x[idx], dtype=torch.float32)
+    output = model(inp).detach().numpy()
+    target = y[idx]
+    ndim = min(ndim, output.shape[-1])
+    _ = plot_predictions(target, output, stds=None, npars=ndim, titles=titles, savepath=savepath, suffix=suffix)
+    plt.close()
+
     
 

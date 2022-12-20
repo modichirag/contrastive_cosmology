@@ -49,7 +49,7 @@ def sample_HOD(m_hod):
 
 
 
-def sample_conditional_HOD(m_hod, mcut, m1=None, seed=0, ab_scatter=0.2): 
+def sample_conditional_HOD(m_hod, mcut, m1=None, seed=0, ab_scatter=0.2, clip=1.): 
     ''' sample HOD value based on priors set by Parejko+(2013)
     centrals: 0.5*[1+erf((\log M_h - \log M_cut)/\sigma)]
     satellites: ((M_h - M_0)/M_1)**\alpha
@@ -76,16 +76,16 @@ def sample_conditional_HOD(m_hod, mcut, m1=None, seed=0, ab_scatter=0.2):
         return theta_hod
 
     elif m_hod == 'zheng07_ab': 
-        ab_0 = np.clip(ab_scatter*np.random.normal(), -1, 1)
-        ab_1 = np.clip(ab_scatter*np.random.normal(), -1, 1)
+        ab_0 = np.clip(ab_scatter*np.random.normal(), -1*clip, clip)
+        ab_1 = np.clip(ab_scatter*np.random.normal(), -1*clip, clip)
         theta_hod.update({'mean_occupation_centrals_assembias_param1' :  ab_0,
                           'mean_occupation_satellites_assembias_param1': ab_1,
                       })
         return theta_hod
 
     elif m_hod == 'zheng07_velab': 
-        ab_0 = np.clip(ab_scatter*np.random.normal(), -1, 1)
-        ab_1 = np.clip(ab_scatter*np.random.normal(), -1, 1)
+        ab_0 = np.clip(ab_scatter*np.random.normal(), -1*clip, clip)
+        ab_1 = np.clip(ab_scatter*np.random.normal(), -1*clip, clip)
         conc = np.random.uniform(0.2, 2.0, size=1)
         eta_c = np.random.uniform(0., 0.7, size=1)
         eta_s = np.random.uniform(0.2, 2.0, size=1) 
@@ -96,7 +96,8 @@ def sample_conditional_HOD(m_hod, mcut, m1=None, seed=0, ab_scatter=0.2):
                           'eta_vb.satellites' : eta_s,
                              })
         return theta_hod
-    else: 
+    else:
+        print("%s not implemented"%m_hod)
         raise NotImplementedError 
 
 

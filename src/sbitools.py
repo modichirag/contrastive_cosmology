@@ -10,6 +10,7 @@ from sbi import utils
 import sbiplots
 import pickle
 from collections import namedtuple
+import torch.optim as optim
 
 class Objectify(object):
     def __init__(self, *initial_data, **kwargs):
@@ -132,11 +133,11 @@ def load_inference(savepath):
 
 
 ###
-def sbi(trainx, trainy, prior, savepath=None, 
+def sbi(trainx, trainy, prior, savepath=None, model_embed=torch.nn.Identity(),
         nhidden=32, nlayers=5, model='maf', batch_size=128,
-        validation_fraction=0.2, lr=0.0005):
+        validation_fraction=0.2, lr=0.0005, retrain=False):
 
-    if savepath is not None:
+    if (savepath is not None) & (not retrain):
         try:
             print("Load an existing posterior model")
             posterior = load_posterior(savepath)
@@ -149,14 +150,15 @@ def sbi(trainx, trainy, prior, savepath=None,
     print("Training a new NF")
     density_estimator_build_fun = posterior_nn(model=model, \
                                                hidden_features=nhidden, \
-                                               num_transforms=nlayers)
+                                               num_transforms=nlayers, embedding_net=model_embed)
     inference = SNPE(prior=prior, density_estimator=density_estimator_build_fun)
     inference.append_simulations(
         torch.from_numpy(trainy.astype('float32')), 
         torch.from_numpy(trainx.astype('float32')))
-    density_estimator = inference.train(training_batch_size=batch_size, \
-                                        validation_fraction=validation_fraction, \
-                                        learning_rate=lr, show_train_summary=True)
+    density_estimator = inference.train(training_batch_size=batch_size, 
+                                        validation_fraction=validation_fraction, 
+                                        learning_rate=lr,
+                                        show_train_summary=True)
     posterior = inference.build_posterior(density_estimator)
     
     if savepath is not None:
@@ -167,29 +169,65 @@ def sbi(trainx, trainy, prior, savepath=None,
 
 
 
-#
-def analysis(dataloader, args, savepath):
-    features, params = dataloader()
-    data = test_train_split(features, params, train_size_frac=0.8)
+# #
+# def analysis(dataloader, args, savepath, model_embed=torch.nn.Identity()):
+#     features, params = dataloader()
+#     data = test_train_split(features, params, train_size_frac=0.8)
 
-    ### Standaradize
-    data.trainx, data.testx, scaler = standardize(data.trainx, secondary=data.testx, log_transform=True)
-    with open(savepath + "scaler.pkl", "wb") as handle:
-        pickle.dump(scaler, handle)
+#     ### Standaradize
+#     data.trainx, data.testx, scaler = standardize(data.trainx, secondary=data.testx, log_transform=True)
+#     with open(savepath + "scaler.pkl", "wb") as handle:
+#         pickle.dump(scaler, handle)
 
-    #############
-    ### SBI
-    prior = sbi_prior(params.reshape(-1, params.shape[-1]), offset=0.1)
-    posterior = sbi(data.trainx, data.trainy, prior, \
-                                  model=args.model, nlayers=args.nlayers, \
-                                  nhidden=args.nhidden, batch_size=args.batch, savepath=savepath)
+#     #############
+#     ### SBI
+#     prior = sbi_prior(params.reshape(-1, params.shape[-1]), offset=0.1)
+#     posterior = sbi(data.trainx, data.trainy, prior, model_embed=model_embed, \
+#                                   model=args.model, nlayers=args.nlayers, \
+#                                   nhidden=args.nhidden, batch_size=args.batch, savepath=savepath)
 
-    ### Diagnostics
-    cosmonames = r'$\Omega_m$,$\Omega_b$,$h$,$n_s$,$\sigma_8$'.split(",")
-    cosmonames = cosmonames + ["Mcut", "sigma", "M0", "M1", "alpha"]
-    for _ in range(args.nposterior):
-        ii = np.random.randint(0, data.testx.shape[0], 1)[0]
-        savename = savepath + 'posterior%04d.png'%(data.tidx[1][ii//params.shape[1]])
-        fig, ax = sbiplots.plot_posterior(data.testx[ii], data.testy[ii], posterior, titles=cosmonames, savename=savename)
-    sbiplots.test_diagnostics(data.testx, data.testy, posterior, titles=cosmonames, savepath=savepath, test_frac=0.2, nsamples=500)
+#     ### Diagnostics
+#     cosmonames = r'$\Omega_m$,$\Omega_b$,$h$,$n_s$,$\sigma_8$'.split(",")
+#     cosmonames = cosmonames + ["Mcut", "sigma", "M0", "M1", "alpha"]
+#     for _ in range(args.nposterior):
+#         ii = np.random.randint(0, data.testx.shape[0], 1)[0]
+#         savename = savepath + 'posterior%04d.png'%(data.tidx[1][ii//params.shape[1]])
+#         fig, ax = sbiplots.plot_posterior(data.testx[ii], data.testy[ii], posterior, titles=cosmonames, savename=savename)
+#     sbiplots.test_diagnostics(data.testx, data.testy, posterior, titles=cosmonames, savepath=savepath, test_frac=0.2, nsamples=500)
 
+
+
+def train(x, y, model, criterion, batch_size=32, niter=100, lr=1e-3, optimizer=None, nprint=20, scheduler=None):
+
+    if optimizer is None: optimizer = optim.Adam(model.parameters(), lr=lr)
+    if scheduler is not None: scheduler = scheduler(optimizer) 
+    # in your training loop:
+    losses = []
+    for j in range(niter+1):
+        optimizer.zero_grad()   # zero the gradient buffers
+        idx = np.random.randint(0, x.shape[0], batch_size)
+        inp = torch.tensor(x[idx], dtype=torch.float32)
+        target = torch.tensor(y[idx], dtype=torch.float32)  # a dummy target, for example
+        output = model(inp)
+        loss = criterion(output, target)
+        loss.backward()
+        optimizer.step()    # Does the update
+        losses.append(loss.detach().numpy())
+        if (j*nprint)%niter == 0: print(j, losses[-1])
+        if (scheduler is not None) & ((j * batch_size)%x.shape[0] == 0) : 
+            #print('scheduel step ')
+            scheduler.step()
+
+    return losses, optimizer
+
+
+
+
+def embed_data(x, model, batch=256, device='cuda'):
+    em = []
+
+    for i in range(x.shape[0]//batch + 1):
+        em.append(model(torch.tensor(x[i*batch : (i+1)*batch], dtype=torch.float32).to(device)).detach().cpu().numpy())
+        
+    em = np.concatenate(em, axis=0)
+    return em
