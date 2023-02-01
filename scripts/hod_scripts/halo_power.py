@@ -62,7 +62,7 @@ def get_power_and_save(i_lhc, halos, pm, numd=None):
         num = None
         suffix = ""
     else:
-        num = int(1e-4 * bs**3)
+        num = int(numd * bs**3)
         suffix = f"_n{numd:.1e}"
     
     #
@@ -93,6 +93,7 @@ for i_lhc in range(id0, id1):
         else:
             halos = Halos.Quijote_LHC_HR(i_lhc, z=zred, finder=args.finder)
 
+    halos = halos.sort('Mass', reverse=True)
     print("Halo read")
 
     for numd in [None, 1e-4, 3e-4, 5e-4, 1e-3]:
