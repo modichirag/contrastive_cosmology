@@ -10,7 +10,7 @@ import quijote as Quijote
 import nbodykit.lab as NBlab
 
 
-def Quijote_LHC_HR(i, z=1.0, finder='fof'): 
+def Quijote_LHC_HR(i, z=1.0, finder='FoF'): 
     ''' Read halo catalog from the high resolution Quijote LHC. 
 
 
@@ -34,8 +34,8 @@ def Quijote_LHC_HR(i, z=1.0, finder='fof'):
     '''
     # directory that contains the Quijote LHC HR
     #halo_folder = "/mnt/ceph/users/fvillaescusa/Quijote/Halos/FoF/latin_hypercube_nwLH/%d/"%i
-    if finder == 'fof': halo_folder = "/mnt/ceph/users/fvillaescusa/Quijote/Halos/FoF/latin_hypercube/HR_%d/"%i
-    elif finder == 'rockstar': halo_folder = "/mnt/ceph/users/cmodi/Quijote/latin_hypercube_HR/Rockstar/%d/"%i
+    if finder == 'FoF': halo_folder = "/mnt/ceph/users/fvillaescusa/Quijote/Halos/FoF/latin_hypercube/HR_%d/"%i
+    elif finder == 'Rockstar': halo_folder = "/mnt/ceph/users/cmodi/Quijote/latin_hypercube_HR/Rockstar/%d/"%i
     
     # look up cosmology of the LHC realization
     Om, Ob, h, ns, s8 = Quijote_LHC_cosmo(i)
@@ -46,7 +46,7 @@ def Quijote_LHC_HR(i, z=1.0, finder='fof'):
 
 
 
-def FastPM_LHC_HR(i, z=1.0, finder='fof'): 
+def FastPM_LHC_HR(i, z=1.0, finder='FoF'): 
     ''' Read halo catalog from the high resolution Quijote LHC. 
 
 
@@ -67,7 +67,7 @@ def FastPM_LHC_HR(i, z=1.0, finder='fof'):
         Quijote HR LHC halo catalog  
     '''
     # directory that contains the FastPM LHC HR
-    if finder == 'rockstar':
+    if finder == 'Rockstar':
         print("Rockstar catalogs for FastPM simulations are not available")
         raise NotImplementedError
     
@@ -94,7 +94,7 @@ def FastPM_LHC_HR(i, z=1.0, finder='fof'):
     Ol = 1. - Om 
     Hz = 100.0 * np.sqrt(Om * (1. + z)**3 + Ol) # km/s/(Mpc/h)
 
-    if finder == 'fof':
+    if finder == 'FoF':
         cat = NBlab.BigFileCatalog(f'/mnt/ceph/users/cmodi/Quijote/latin_hypercube_HR/FoF_fastpm/{i}/fof_{a}/LL-0.200/')
         cat['Mass'] = cat["Length"] *float(cat.attrs['M0'] * 1e10)
         # calculate velocity offset
