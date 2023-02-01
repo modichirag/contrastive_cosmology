@@ -98,18 +98,4 @@ for i_lhc in range(id0, id1):
 
     for numd in [None, 1e-4, 3e-4, 5e-4, 1e-3]:
         get_power_and_save(i_lhc, halos, pm, numd=numd)
-    # save_dir = data_dir + '%04d/'%i_lhc
-    # os.makedirs(save_dir, exist_ok=True)
-    # k, ph = hodtools.get_power(halos, pm)
-    # np.save(save_dir + "powerh", np.array([k, ph]).T)
-    # k, ph = hodtools.get_power(halos, pm, num=int(1e-4 * bs**3))
-    # np.save(save_dir + "powerh_1e-4", np.array([k, ph]).T)
-    # #
-    # k, pmu, pell = hodtools.get_power_rsd(halos, pm, Nmu=12)
-    # np.save(save_dir+"powerh_rsd", pmu)
-    # np.save(save_dir+"powerh_ell", pell)
-    
-    # k, pmu, pell = hodtools.get_power_rsd(halos, pm, num=int(1e-4 * bs**3), Nmu=12)
-    # np.save(save_dir+"powerh_1e-4_rsd", pmu)
-    # np.save(save_dir+"powerh_1e-4_ell", pell)
     
