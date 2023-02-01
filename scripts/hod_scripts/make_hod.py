@@ -146,9 +146,9 @@ for i_lhc in range(args.id0, args.id1):
 
         
     #
-    np.save(save_dir + "power", np.array(ps))
-    np.save(save_dir + "power_rsd", np.array(pmus))
-    np.save(save_dir + "power_ell", np.array(pells))
+    np.save(save_dir + "power", np.array(ps).real)
+    np.save(save_dir + "power_rsd", np.array(pmus).real)
+    np.save(save_dir + "power_ell", np.array(pells).real)
     np.save(save_dir + "gals", np.array(gals))
     np.save(save_dir + "hodp", np.array(hods)) 
     np.save(save_dir + "hfracs", np.array(hfracs)) 
