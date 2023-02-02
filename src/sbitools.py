@@ -42,16 +42,57 @@ def sbi_prior(params, offset=0.25):
 
 
 ###
+# def test_train_split(x, y, train_size_frac=0.8, random_state=0, reshape=True):
+#     '''
+#     Split the data into test and training dataset
+#     '''
+#     train, test = train_test_split(np.arange(x.shape[0])[:, np.newaxis], 
+#                                    train_size=train_size_frac, random_state=random_state)
+#     data = namedtuple("data", ["trainx", "trainy", "testx", "testy"])
+    
+#     train_id = train.ravel()
+#     test_id = test.ravel()
+#     data.tidx = [train_id, test_id]
+#     data.trainx = x[train_id]
+#     data.testx =  x[test_id]
+#     data.trainy = y[train_id]
+#     data.testy = y[test_id]    
+#     if reshape:
+#         if len(data.trainx.shape) > 2:
+#             nsim = data.trainx.shape[1] # assumes that features are on last axis
+#             nfeats, nparams = data.trainx.shape[-1], data.trainy.shape[-1]
+#             data.nsim, data.nfeatures, data.nparams = nsim, nfeats, nparams
+#             data.trainx = data.trainx.reshape(-1, nfeats)
+#             data.testx = data.testx.reshape(-1, nfeats)
+#             data.trainy = data.trainy.reshape(-1, nparams)
+#             data.testy = data.testy.reshape(-1, nparams)
+
+#     return data
+
 def test_train_split(x, y, train_size_frac=0.8, random_state=0, reshape=True):
     '''
     Split the data into test and training dataset
     '''
-    train, test = train_test_split(np.arange(x.shape[0])[:, np.newaxis], 
-                                   train_size=train_size_frac, random_state=random_state)
+
+    idxpath = '/mnt/ceph/users/cmodi/contrastive/analysis/test-train-splits/'
+    n = x.shape[0]
+    test_frac = 1 - train_size_frac
+    fname = f"N{n}-f{test_frac:0.2f}-S{random_state}"
+
+    try:
+        train_id = np.load(f"{idxpath}train-{fname}.npy")
+        test_id = np.load(f"{idxpath}test-{fname}.npy")
+
+    except Exception as e:
+        print("\nEXCEPTION occured in loading test_train_split")
+        print(e)
+        print("Revert to generating split on the fly")
+        train, test = train_test_split(np.arange(x.shape[0])[:, np.newaxis], 
+                                       train_size=train_size_frac, random_state=random_state)
+        train_id = train.ravel()
+        test_id = test.ravel()
+
     data = namedtuple("data", ["trainx", "trainy", "testx", "testy"])
-    
-    train_id = train.ravel()
-    test_id = test.ravel()
     data.tidx = [train_id, test_id]
     data.trainx = x[train_id]
     data.testx =  x[test_id]
