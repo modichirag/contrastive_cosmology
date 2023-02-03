@@ -20,9 +20,7 @@ sweep_id = sys.argv[1]
 nmodels = sys.argv[2]
 config_data = sys.argv[3]
 configd = yaml.load(open(f'{config_data}'), Loader=yaml.Loader)
-print("data config : ", configd)
 configd = sbitools.Objectify(**configd)
-print("data config object : ", configd)
 
 #
 folder = '//z%d-N%04d/%s/'%(configd.z*10, configd.nbar*1e4, '%s')
@@ -107,5 +105,6 @@ def train_sweep(config=None):
 
 if __name__ == '__main__':
 
+    print(f"run for {nmodels} models")
     wandb.agent(sweep_id=sweep_id, function=train_sweep, count=nmodels, project='sbijobs')
 

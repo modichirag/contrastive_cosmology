@@ -98,9 +98,13 @@ def plot_posterior(x, y, posterior, nsamples=1000, titles=None, savename="", ndi
             axar[i, j].plot(posterior_samples[:, j], posterior_samples[:, i], '.')
         for j in range(i+1, ndim):
             axar[i, j].set_axis_off()
-    if titles is not None:
-        for i in range(ndim): 
-            axar[i, i].set_title(titles[i])
+            
+    if titles is None:
+        titles = cosmonames
+        if ndim > len(titles): 
+            titles = titles + ["a_%d"%i for i in range(ndim - len(titles))]
+    for i in range(ndim): 
+        axar[i, i].set_title(titles[i])
 
     if savename != "": 
         plt.savefig(savename)

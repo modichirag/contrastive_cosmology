@@ -13,6 +13,6 @@ print(sweep_id)
 nmodels = 5
 config_data = "config_data.yaml"
 
-command = f"time python -u wandb_analysis.py {sweep_id} {nmodels} {config_data}"
+command = f"time mpirun -n 2  python -u wandb_analysis.py {sweep_id} {nmodels} {config_data}"
 print(command)
 os.system(command)

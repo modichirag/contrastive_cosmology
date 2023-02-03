@@ -37,7 +37,6 @@ def sbi_prior(params, offset=0.25):
     lower_bound, upper_bound = (torch.from_numpy(lower_bound.astype('float32')), 
                                 torch.from_numpy(upper_bound.astype('float32')))
     prior = utils.BoxUniform(lower_bound, upper_bound)
-    print("prior : ", lower_bound, upper_bound)
     return prior
 
 
@@ -69,6 +68,22 @@ def sbi_prior(params, offset=0.25):
 
 #     return data
 
+
+def split_index(n, test_frac, seed):
+
+    np.random.seed(seed)
+    idxpath = '/mnt/ceph/users/cmodi/contrastive/analysis/test-train-splits/'
+    idx = np.random.permutation(np.arange(n))
+    split = int((1-test_frac)*n)
+    train = idx[:split]
+    test = idx[split:]
+    fname = f"N{n}-f{test_frac:0.2f}-S{seed}"
+    np.save(f"{idxpath}train-{fname}", train)
+    np.save(f"{idxpath}test-{fname}", test)
+    print(f"Test-train splits saved at {idxpath}train-{fname}")
+    return train, test 
+
+    
 def test_train_split(x, y, train_size_frac=0.8, random_state=0, reshape=True):
     '''
     Split the data into test and training dataset
@@ -86,11 +101,12 @@ def test_train_split(x, y, train_size_frac=0.8, random_state=0, reshape=True):
     except Exception as e:
         print("\nEXCEPTION occured in loading test_train_split")
         print(e)
-        print("Revert to generating split on the fly")
-        train, test = train_test_split(np.arange(x.shape[0])[:, np.newaxis], 
-                                       train_size=train_size_frac, random_state=random_state)
-        train_id = train.ravel()
-        test_id = test.ravel()
+        print("Generate splits now and save them")
+        train_id, test_id = split_index(n, test_frac, random_state)
+        # train, test = train_test_split(np.arange(x.shape[0])[:, np.newaxis], 
+        #                                train_size=train_size_frac, random_state=random_state)
+        # train_id = train.ravel()
+        # test_id = test.ravel()
 
     data = namedtuple("data", ["trainx", "trainy", "testx", "testy"])
     data.tidx = [train_id, test_id]

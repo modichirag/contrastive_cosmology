@@ -1,7 +1,7 @@
 method: random
 metric:
   goal: maximize
-  name: best_validation_log_probs
+  name: best_validation_log_prob
 parameters:
   batch_size:
     distribution: q_log_uniform_values
