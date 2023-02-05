@@ -95,9 +95,11 @@ def test_train_split(x, y, train_size_frac=0.8, random_state=0, reshape=True):
     fname = f"N{n}-f{test_frac:0.2f}-S{random_state}"
 
     try:
+        print(f"Loading test-train split index from {idxpath}train-{fname}.npy")
         train_id = np.load(f"{idxpath}train-{fname}.npy")
         test_id = np.load(f"{idxpath}test-{fname}.npy")
-
+        print("Successfully loaded")
+        
     except Exception as e:
         print("\nEXCEPTION occured in loading test_train_split")
         print(e)
@@ -192,14 +194,18 @@ def load_inference(savepath):
 ###
 def sbi(trainx, trainy, prior, savepath=None, model_embed=torch.nn.Identity(),
         nhidden=32, nlayers=5, model='maf', batch_size=128,
-        validation_fraction=0.2, lr=0.0005, retrain=False):
+        validation_fraction=0.2, lr=0.0005, retrain=False,
+        summarize=False):
 
     if (savepath is not None) & (not retrain):
         try:
             print("Load an existing posterior model")
             posterior = load_posterior(savepath)
             inference = load_inference(savepath)
-            return posterior
+            if summarize:
+                return posterior, inference, None
+            else:
+                return posterior
 
         except Exception as e:
             print("##Exception##\n", e)
@@ -207,7 +213,8 @@ def sbi(trainx, trainy, prior, savepath=None, model_embed=torch.nn.Identity(),
     print("Training a new NF")
     density_estimator_build_fun = posterior_nn(model=model, \
                                                hidden_features=nhidden, \
-                                               num_transforms=nlayers, embedding_net=model_embed)
+                                               num_transforms=nlayers,
+                                               embedding_net=model_embed)
     inference = SNPE(prior=prior, density_estimator=density_estimator_build_fun)
     inference.append_simulations(
         torch.from_numpy(trainy.astype('float32')), 
@@ -222,9 +229,53 @@ def sbi(trainx, trainy, prior, savepath=None, model_embed=torch.nn.Identity(),
         save_posterior(posterior, savepath)
         save_inference(inference, savepath)
 
-    return posterior
+    if summarize:
+        # Log summary
+        summary = {"train_log_probs":[], "validation_log_probs":[]}
+        for i in range(len(inference.summary['train_log_probs'])):
+            summary['train_log_probs'].append(inference.summary['train_log_probs'][i])
+            summary['validation_log_probs'].append(inference.summary['validation_log_probs'][i])
+        summary["best_validation_log_prob"] = inference.summary['best_validation_log_probs'][0]
+        if savepath is not None:
+            np.save(savepath + 'train_log_probs', summary['train_log_probs'])
+            np.save(savepath + 'validation_log_probs', summary['validation_log_probs'])
+            np.save(savepath + 'best_validation_log_prob', summary['best_validation_log_prob'])
+        return posterior, inference, summary
+    else:
+        return posterior
 
 
+#############
+def analysis(cfgd, cfgm, features, params):
+    data = test_train_split(features, params, train_size_frac=cfgd.train_frac)
+
+    ### Standaradize
+    scaler = None
+    if cfgd.standardize:
+        try:
+            scaler = load_scaler(cfgd.analysis_path)
+            data.trainx = standardize(data.trainx, scaler=scaler, log_transform=cfgd.logit)[0]
+            data.testx = standardize(data.testx, scaler=scaler, log_transform=cfgd.logit)[0]
+        except Exception as e:
+            print("EXCEPTION occured in loading scaler", e)
+            print("Fitting for the scaler and saving it")
+            data.trainx, data.testx, scaler = standardize(data.trainx, secondary=data.testx, log_transform=cfgd.logit)
+            with open(cfgd.analysis_path + "scaler.pkl", "wb") as handle:
+                pickle.dump(scaler, handle)
+
+    ### SBI
+    prior = sbi_prior(params.reshape(-1, params.shape[-1]), offset=0.2)
+    print("trainx and trainy shape : ", data.trainx.shape, data.trainy.shape)
+    posterior, inference, summary = sbi(data.trainx, data.trainy, prior, \
+                             model=cfgm.model, nlayers=cfgm.ntransforms, \
+                             nhidden=cfgm.nhidden, batch_size=cfgm.batch,
+                             savepath=cfgm.model_path,
+                             retrain=bool(cfgm.retrain),
+                             summarize=True)
+
+    return data, posterior, inference, summary
+
+    
 
 # #
 # def analysis(dataloader, args, savepath, model_embed=torch.nn.Identity()):
