@@ -193,9 +193,10 @@ def load_inference(savepath):
 
 ###
 def sbi(trainx, trainy, prior, savepath=None, model_embed=torch.nn.Identity(),
-        nhidden=32, nlayers=5, model='maf', batch_size=128,
-        validation_fraction=0.2, lr=0.0005, retrain=False,
-        summarize=False):
+        model='maf', nhidden=32, nlayers=5, nblocks=2,
+        batch_size=128, lr=0.0005,
+        validation_fraction=0.2, 
+        retrain=False, summarize=False, verbose=True):
 
     if (savepath is not None) & (not retrain):
         try:
@@ -214,15 +215,19 @@ def sbi(trainx, trainy, prior, savepath=None, model_embed=torch.nn.Identity(),
     density_estimator_build_fun = posterior_nn(model=model, \
                                                hidden_features=nhidden, \
                                                num_transforms=nlayers,
+                                               num_blocks=nblocks,
                                                embedding_net=model_embed)
+    
     inference = SNPE(prior=prior, density_estimator=density_estimator_build_fun)
     inference.append_simulations(
         torch.from_numpy(trainy.astype('float32')), 
         torch.from_numpy(trainx.astype('float32')))
+    
     density_estimator = inference.train(training_batch_size=batch_size, 
                                         validation_fraction=validation_fraction, 
                                         learning_rate=lr,
-                                        show_train_summary=True)
+                                        show_train_summary=verbose)
+    
     posterior = inference.build_posterior(density_estimator)
     
     if savepath is not None:
@@ -246,8 +251,8 @@ def sbi(trainx, trainy, prior, savepath=None, model_embed=torch.nn.Identity(),
 
 
 #############
-def analysis(cfgd, cfgm, features, params):
-    data = test_train_split(features, params, train_size_frac=cfgd.train_frac)
+def analysis(cfgd, cfgm, features, params, verbose=True):
+    data = test_train_split(features, params, train_size_frac=cfgd.train_fraction)
 
     ### Standaradize
     scaler = None
@@ -267,11 +272,17 @@ def analysis(cfgd, cfgm, features, params):
     prior = sbi_prior(params.reshape(-1, params.shape[-1]), offset=0.2)
     print("trainx and trainy shape : ", data.trainx.shape, data.trainy.shape)
     posterior, inference, summary = sbi(data.trainx, data.trainy, prior, \
-                             model=cfgm.model, nlayers=cfgm.ntransforms, \
-                             nhidden=cfgm.nhidden, batch_size=cfgm.batch,
-                             savepath=cfgm.model_path,
-                             retrain=bool(cfgm.retrain),
-                             summarize=True)
+                                        model=cfgm.model,
+                                        nlayers=cfgm.ntransforms,
+                                        nhidden=cfgm.nhidden,
+                                        nblocks=cfgm.nblocks,
+                                        batch_size=cfgm.batch,
+                                        lr=cfgm.lr,
+                                        validation_fraction=cfgd.validation_fraction,
+                                        savepath=cfgm.model_path,
+                                        retrain=bool(cfgm.retrain),
+                                        summarize=True,
+                                        verbose=verbose)
 
     return data, posterior, inference, summary
 

@@ -3,23 +3,29 @@ metric:
   goal: maximize
   name: best_validation_log_prob
 parameters:
-  batch_size:
+  batch:
     distribution: q_log_uniform_values
-    max: 128
-    min: 8
+    max: 256
+    min: 16
     q: 8
-  density_estimator:
+  model:
     values:
       - maf
-  learning_rate:
-    values:
-        - 0.001
-  num_hidden:
+  lr:
+    distribution: q_log_uniform_values
+    max: 1e-3
+    min: 1e-5
+    q: 1e-05
+  nhidden:
     distribution: q_log_uniform_values
     max: 128
     min: 32
-    q: 32
-  num_transforms:
+    q: 8
+  ntransforms:
     distribution: int_uniform
     max: 10
     min: 3
+  nblocks:
+    distribution: int_uniform
+    max: 5
+    min: 2

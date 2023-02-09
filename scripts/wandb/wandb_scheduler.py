@@ -1,18 +1,29 @@
 import numpy as np
 import sys, os
 import wandb
-import yaml
+from ruamel import yaml
+import folder_path
 wandb.login()
 
-
-#sweep_id = "lfjxq81k"
-#sweep_id = "7u86e3ba"
-sweep_id = "1p2zcshl"
-#sweep_id = wandb.sweep(sweep=yaml.load(open(f'config_wandb.yaml'), Loader=yaml.Loader), project='sbijobs', entity='modichirag92')
+config_data = sys.argv[1]
+sweep_id = wandb.sweep(sweep=yaml.load(open(f'./configs/config_wandb_v1.yaml'), Loader=yaml.Loader), project='quijote-hodells', entity='modichirag92')
 print(sweep_id)
-nmodels = 5
-config_data = "config_data.yaml"
+nmodels = 1
 
-command = f"time mpirun -n 2  python -u wandb_analysis.py {sweep_id} {nmodels} {config_data}"
+#save config file with sweep id
+cfgd = yaml.load(open(f'{config_data}'), Loader=yaml.RoundTripLoader)
+cfgd['sweep'] = {'id' : sweep_id}
+fname = config_data.split('/')[-1]
+analysis_path = folder_path.hodells_path(cfgd)
+model_path = f'{analysis_path}/{sweep_id}/'
+config_path = f'{model_path}/sweep_{fname}'
+os.makedirs(model_path, exist_ok=True)
+with open(config_path, 'w') as outfile:
+    yaml.dump(cfgd, outfile, Dumper=yaml.RoundTripDumper)
+
+print(f"config path saved at:\n{config_path}\n")
+#run once to initiate the sweep    
+command = f"time python -u wandb_hodells.py {config_path} {nmodels}"
 print(command)
 os.system(command)
+

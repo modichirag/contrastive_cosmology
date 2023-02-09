@@ -1,6 +1,6 @@
 ---
 data:
-  z: 1.0
+  z: 0.5
   nbar: 1.e-4
   simulation: quijote
   finder: 'FoF'
@@ -18,7 +18,8 @@ datacuts:
 
 analysis:
   seed: 0
-  train_frac: 0.85
+  train_fraction: 0.85
+  validation_fraction: 0.2
   fithod: True
   standardize_hod: True
   suffix: ""
