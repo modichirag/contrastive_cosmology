@@ -81,8 +81,8 @@ log_prob = np.array(log_prob)[idx]
 #Check for individual models
 
 nmodels = 10
-test_frac = 0.05
-nsamples = 100
+test_frac = 0.1
+nsamples = 200
 
 posteriors = []
 for name in names[:nmodels]:
@@ -92,52 +92,54 @@ for name in names[:nmodels]:
     posterior = sbitools.load_posterior(model_path)
     posteriors.append(posterior)
     
-    for i in range(3):
-        print(i)
-        fig, ax = sbiplots.plot_posterior(data.testx[i], data.testy[i], posterior, savename=f'{figpath}/corner-{name}{i}.png')
+    # for i in range(3):
+    #     print(i)
+    #     fig, ax = sbiplots.plot_posterior(data.testx[i], data.testy[i], posterior, savename=f'{figpath}/corner-{name}{i}.png')
 
-    trues, mus, stds, ranks = sbiplots.get_ranks(data.testx, data.testy, posterior, test_frac=test_frac, nsamples=nsamples, ndim=5)
+    # try:
+    #     trues, mus, stds, ranks = sbiplots.get_ranks(data.testx, data.testy, posterior, test_frac=test_frac, nsamples=nsamples, ndim=5)
+    #     tosave = np.stack([trues, mus, stds, ranks], axis=-1)
+    #     np.save(f'{figpath}/data/ranks-{name}', tosave)
+        
+    #     fig, ax = sbiplots.plot_coverage(ranks, titles=sbiplots.cosmonames)
+    #     plt.savefig(f'{figpath}/coverage-{name}.png')
+    #     plt.close()
+        
+    #     fig, ax = sbiplots.plot_ranks_histogram(ranks, titles=sbiplots.cosmonames)
+    #     plt.savefig(f'{figpath}/rankplot-{name}.png')
+    #     plt.close()
+        
+    #     fig, ax = sbiplots.plot_predictions(trues, mus, stds,  titles=sbiplots.cosmonames)
+    #     plt.savefig(f'{figpath}/predictions-{name}.png')
+    #     plt.close()
+        
+    # except: continue
     
-    tosave = np.stack([trues, mus, stds, ranks], axis=-1)
-    np.save(f'{figpath}/data/ranks-{name}', tosave)
-
-    fig, ax = sbiplots.plot_coverage(ranks, titles=sbiplots.cosmonames)
-    plt.savefig(f'{figpath}/coverage-{name}.png')
-    plt.close()
-
-    fig, ax = sbiplots.plot_ranks_histogram(ranks, titles=sbiplots.cosmonames)
-    plt.savefig(f'{figpath}/rankplot-{name}.png')
-    plt.close()
-
-    fig, ax = sbiplots.plot_predictions(trues, mus, stds,  titles=sbiplots.cosmonames)
-    plt.savefig(f'{figpath}/predictions-{name}.png')
-    plt.close()
    
 
-#Check for ensembles
-for ien in range(1, nmodels+1):
+    #Check for ensembles
+    ien = len(posteriors)
+    #for ien in range(1, nmodels+1):
 
     name = f'ens{ien}'
+    print(f"For ensemble : {name}")
     posterior = NeuralPosteriorEnsemble(posteriors=posteriors[:ien])
 
-    for i in range(3):
-        print(i)
-        fig, ax = sbiplots.plot_posterior(data.testx[i], data.testy[i], posterior, savename=f'{figpath}/corner-{name}{i}.png')
-
-    trues, mus, stds, ranks = sbiplots.get_ranks(data.testx, data.testy, posterior, test_frac=test_frac, nsamples=nsamples, ndim=5)
-    
-    tosave = np.stack([trues, mus, stds, ranks], axis=-1)
-    np.save(f'{figpath}/data/ranks-{name}', tosave)
-
-    fig, ax = sbiplots.plot_coverage(ranks, titles=sbiplots.cosmonames)
-    plt.savefig(f'{figpath}/coverage-{name}.png')
-    plt.close()
-
-    fig, ax = sbiplots.plot_ranks_histogram(ranks, titles=sbiplots.cosmonames)
-    plt.savefig(f'{figpath}/rankplot-{name}.png')
-    plt.close()
-
-    fig, ax = sbiplots.plot_predictions(trues, mus, stds,  titles=sbiplots.cosmonames)
-    plt.savefig(f'{figpath}/predictions-{name}.png')
-    plt.close()
+    try:
+        trues, mus, stds, ranks = sbiplots.get_ranks(data.testx, data.testy, posterior, test_frac=test_frac, nsamples=nsamples, ndim=5)
+        tosave = np.stack([trues, mus, stds, ranks], axis=-1)
+        np.save(f'{figpath}/data/ranks-{name}', tosave)
+        
+        fig, ax = sbiplots.plot_coverage(ranks, titles=sbiplots.cosmonames)
+        plt.savefig(f'{figpath}/coverage-{name}.png')
+        plt.close()
+        
+        fig, ax = sbiplots.plot_ranks_histogram(ranks, titles=sbiplots.cosmonames)
+        plt.savefig(f'{figpath}/rankplot-{name}.png')
+        plt.close()
+        
+        fig, ax = sbiplots.plot_predictions(trues, mus, stds,  titles=sbiplots.cosmonames)
+        plt.savefig(f'{figpath}/predictions-{name}.png')
+        plt.close()
+    except: continue
 
