@@ -1,55 +1,57 @@
 import numpy as np
 import sys, os
-sys.path.append('../../src/')
+sys.path.append('../../../src/')
 import sbitools
 import argparse
 import pickle
 
 
 #####
-def k_cuts(args, k, pk):
-    ikmin = np.where(k>args.kmin)[0][0]
-    ikmax = np.where(k>args.kmax)[0][0]
-    pk = pk[..., ikmin:ikmax, :]
-    print("pk shape after k-cuts : ", pk.shape)
-    return pk
+def k_cuts(args, k, bk):
+    ikmin = np.where(k[:, 0]>args.kmin)[0][0]
+    if k[:, 0].max()>args.kmax :
+        ikmax = np.where(k[:, 0]>args.kmax)[0][0]
+        bk = bk[..., ikmin:ikmax, :]
+    else:
+        bk = bk[..., ikmin:, :]
+    print("bk shape after k-cuts : ", bk.shape)
+    return bk
 
 
-def add_offset(args, pk):
+def add_offset(args, bk):
     if args.offset_amp:
         print(f"Offset power spectra with amplitude: {args.offset_amp}")
-        offset = args.offset_amp*np.random.uniform(1, 10, np.prod(pk.shape[:2]))
-        offset = offset.reshape(pk.shape[0], pk.shape[1]) # different offset for sim & HOD realization
-        pk = pk + offset[..., None, None]
+        offset = args.offset_amp*np.random.uniform(1, 10, np.prod(bk.shape[:2]))
+        offset = offset.reshape(bk.shape[0], bk.shape[1]) # different offset for sim & HOD realization
+        bk = bk + offset[..., None, None]
     else:
         offset = None
-    return pk, offset
+    return bk, offset
 
 
-# def normalize_amplitude(args, pk):
-#     if args.ampnorm:
-#         pk /= pk[..., args.ampnorm:args.ampnorm+1]
-#         print(f"Normalize amplitude at scale-index: {args.ampnorm}")
-#     return pk
+def normalize_amplitude(args, bk):
+    if args.ampnorm:
+        raise NotImplementedError
+    return bk 
 
 
-
-
-def hod_bspec_lh_features(datapath, args):
-    bk = np.load(datapath + '/bspec.npy')
+def hod_bispec_lh_features(datapath, args):
+    if args.reduced: bk = np.load(datapath + '/qspec.npy')
+    else: bk = np.load(datapath + '/bspec.npy')
+    k = np.load('/mnt/ceph/users/cmodi/contrastive/data/k-bispec.npy')
+    print("k shape : ", k.shape)
     ngal = np.load(datapath + '/gals.npy')[..., 0] # read centrals only
     nsims, nhod = bk.shape[0], bk.shape[1]
     print("Loaded bispectrum data with shape : ", bk.shape)
     
     #Offset here
-    #bk, offset = add_offset(args, bk)
-    offset = None
+    bk, offset = add_offset(args, bk)
 
     #k cut
-    #bk = k_cuts(args, k, bk)
+    bk = k_cuts(args, k, bk)
 
     # Normalize at large sacles
-    #bk = normalize_amplitude(args, bk)
+    bk = normalize_amplitude(args, bk)
     
     if args.ngals:
         print("Add ngals to data")
@@ -58,34 +60,6 @@ def hod_bspec_lh_features(datapath, args):
             print("Subsizing galaxy catalog for bisepctrum, make sure it is consistent")
             ngal = ngal[:, :bk.shape[1]]
         features = np.concatenate([bk, np.expand_dims(ngal, -1)], axis=-1)
-        
-    print("Final features shape : ", features.shape)
-    return features, offset
-
-
-def hod_qspec_lh_features(datapath, args):
-    qk = np.load(datapath + '/qspec.npy')
-    ngal = np.load(datapath + '/gals.npy')[..., 0] # read centrals only
-    nsims, nhod = qk.shape[0], qk.shape[1]
-    print("Loaded bispectrum data with shape : ", qk.shape)
-    
-    #Offset here
-    #qk, offset = add_offset(args, qk)
-    offset = None
-    
-    #k cut
-    #qk = k_cuts(args, k, qk)
-
-    # Normalize at large sacles
-    #qk = normalize_amplitude(args, qk)
-    
-    if args.ngals:
-        print("Add ngals to data")
-        if ngal.shape[1] != qk.shape[1]:
-            print("Ngal shape is not consistent : ", ngal.shape, qk.shape)
-            print("Subsizing galaxy catalog for bisepctrum, make sure it is consistent")
-            ngal = ngal[:, :qk.shape[1]]
-        features = np.concatenate([qk, np.expand_dims(ngal, -1)], axis=-1)
         
     print("Final features shape : ", features.shape)
     return features, offset
@@ -130,8 +104,7 @@ def hod_bispec_lh(datapath, args):
     Offset multipoles with a random constant amplitude scaled with offset_amp.
     """
     
-    if args.reduced: features, offset = hod_qspec_lh_features(datapath, args)
-    else: features, offset = hod_bspec_lh_features(datapath, args)
+    features, offset = hod_bispec_lh_features(datapath, args)
     params = hod_lh_params(datapath, args, features)
     
     if offset is not None:
