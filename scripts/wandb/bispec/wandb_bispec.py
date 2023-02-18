@@ -1,10 +1,10 @@
 import numpy as np
 #import matplotlib.pyplot as plt
 import sys, os
-sys.path.append('../../src/')
+sys.path.append('../../../src/')
 sys.path.append('../')
 import sbitools, sbiplots
-import loader_hod_ells as loader
+import loader_hod_bispec as loader
 import wandb
 import yaml
 from folder_path import bispec_path
