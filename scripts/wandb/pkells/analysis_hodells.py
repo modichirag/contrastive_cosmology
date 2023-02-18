@@ -1,6 +1,6 @@
 import numpy as np
 import sys, os
-sys.path.append('../../src/')
+sys.path.append('../../../src/')
 import sbitools, sbiplots
 import argparse
 import pickle, json
