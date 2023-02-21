@@ -11,19 +11,22 @@ def k_cuts(args, k, bk):
     ikmin = np.where(k[:, 0]>args.kmin)[0][0]
     if k[:, 0].max()>args.kmax :
         ikmax = np.where(k[:, 0]>args.kmax)[0][0]
-        bk = bk[..., ikmin:ikmax, :]
+        print(f"kmax cut at {ikmax}")
+        bk = bk[..., ikmin:ikmax]
     else:
+        print(f"kmax cut at {args.kmax} is on smaller scales than the data at {k[:, 0].max()}")
         bk = bk[..., ikmin:, :]
     print("bk shape after k-cuts : ", bk.shape)
     return bk
 
 
-def add_offset(args, bk):
+def add_offset(args, bk, seed=None):
+    if seed is not None: np.random.seed(seed)
     if args.offset_amp:
         print(f"Offset power spectra with amplitude: {args.offset_amp}")
         offset = args.offset_amp*np.random.uniform(1, 10, np.prod(bk.shape[:2]))
         offset = offset.reshape(bk.shape[0], bk.shape[1]) # different offset for sim & HOD realization
-        bk = bk + offset[..., None, None]
+        bk = bk + offset[..., None]
     else:
         offset = None
     return bk, offset

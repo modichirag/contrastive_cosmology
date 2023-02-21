@@ -15,12 +15,13 @@ def k_cuts(args, k, pk):
     return pk
 
 
-def add_offset(args, pk):
+def add_offset(args, pk, seed=None):
+    if seed is not None: np.random.seed(seed)
     if args.offset_amp:
         print(f"Offset power spectra with amplitude: {args.offset_amp}")
         offset = args.offset_amp*np.random.uniform(1, 10, np.prod(pk.shape[:2]))
         offset = offset.reshape(pk.shape[0], pk.shape[1]) # different offset for sim & HOD realization
-        pk = pk + offset[..., None, None]
+        pk = pk + offset[..., None, None] #add k and ells dimension
     else:
         offset = None
     return pk, offset

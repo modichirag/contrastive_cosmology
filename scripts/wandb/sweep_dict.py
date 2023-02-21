@@ -17,6 +17,3 @@ for sim in sims:
     print()
 
 
-#for currentpath, folders, files in os.walk(datapath):
-    #for file in files:
-    #    print(os.path.join(currentpath, file))
