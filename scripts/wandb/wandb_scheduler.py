@@ -31,6 +31,13 @@ elif ('bspec' in config_data) or ('qspec' in config_data):
     config_path = f'{model_path}/sweep_{fname}'
     command = f"time python -u ./bispec/wandb_bispec.py {config_path} {nmodels}"
     
+elif ('pknb' in config_data):
+    print("Scheduling for pk and bispectrum")
+    analysis_path = folder_path.pknb_path(cfgd)
+    model_path = f'{analysis_path}/{sweep_id}/'
+    config_path = f'{model_path}/sweep_{fname}'
+    command = f"time python -u ./pknb/wandb_pknb.py {config_path} {nmodels}"
+    
 os.makedirs(model_path, exist_ok=True)
 with open(config_path, 'w') as outfile:
     yaml.dump(cfgd, outfile, Dumper=yaml.RoundTripDumper)

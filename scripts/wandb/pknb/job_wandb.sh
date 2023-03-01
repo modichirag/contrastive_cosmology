@@ -3,8 +3,8 @@
 #SBATCH -n 4
 #SBATCH --partition=ccm
 #SBATCH -C skylake
-#SBATCH --time=2:00:00
-#SBATCH --job-name=wandb
+#SBATCH --time=6:00:00
+#SBATCH --job-name=wb_pknb
 #SBATCH -o ../logs/%x.o%j
 
 # Start from an "empty" module collection.
@@ -23,4 +23,4 @@ echo $N_JOB
 config_data=$1
 nmodels=20
 
-time mpirun -n ${N_JOB} python -u wandb_hodells.py ${config_data} ${nmodels} 
+time mpirun -n ${N_JOB} python -u wandb_pknb.py ${config_data} ${nmodels} 
