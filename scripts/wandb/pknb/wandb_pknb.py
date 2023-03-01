@@ -1,0 +1,75 @@
+import numpy as np
+#import matplotlib.pyplot as plt
+import sys, os
+sys.path.append('../../../src/')
+sys.path.append('../')
+import sbitools, sbiplots
+import loader_hod_pknb as loader
+import wandb
+import yaml
+import folder_path
+#wandb.login()
+
+## Parse arguments
+config_data = sys.argv[1]
+nmodels = int(sys.argv[2])
+cfgd_dict = yaml.load(open(f'{config_data}'), Loader=yaml.Loader)
+sweep_id = cfgd_dict['sweep']['id']
+print(sweep_id)
+
+cuts = cfgd_dict['datacuts']
+args = {}
+for i in cfgd_dict.keys():
+    args.update(**cfgd_dict[i])
+cfgd = sbitools.Objectify(**args)
+
+#
+datapath = f'/mnt/ceph/users/cmodi/contrastive/data/{cfgd.simulation}/{cfgd.finder}/z{int(cfgd.z*10):02d}-N{int(cfgd.nbar/1e-4):04d}/{cfgd.hodmodel}/'
+print(f"data path : {datapath}")
+cfgd.analysis_path = folder_path.pknb_path(cfgd_dict)
+cfgd.model_path = cfgd.analysis_path + '/%s/'%sweep_id
+os.makedirs(cfgd.model_path, exist_ok=True)
+print("\nWorking directory : ", cfgd.model_path)
+os.system('cp {config_data} {cfgd.model_path}')
+##
+
+
+#############
+features, params = loader.hod_pknb_lh(datapath, cfgd)
+print("features and params shapes : ", features.shape, params.shape)
+
+#####
+#############
+def train_sweep(config=None):
+
+    
+    with wandb.init(config=config) as run:
+
+        # Copy your config 
+        # run.name = 'model%d'%np.random.randint(1000)
+        cfgm = wandb.config
+        cfgm = sbitools.Objectify(**cfgm)
+        cfgm.retrain = True
+
+        print("running for model name : ", run.name)
+        cfgm.model_path = f"{cfgd.model_path}/{run.name}/"
+        os.makedirs(cfgm.model_path, exist_ok=True)
+
+        data, posterior, inference, summary = sbitools.analysis(cfgd, cfgm, features, params, verbose=False)
+
+        # Make the loss and optimizer
+        for i in range(len(summary['train_log_probs'])):
+            metrics = {"train_log_probs": summary['train_log_probs'][i],
+                   "validation_log_probs": summary['validation_log_probs'][i]}
+            wandb.log(metrics)
+        wandb.run.summary["best_validation_log_prob"] = summary['best_validation_log_prob']
+        print(wandb.run.summary["best_validation_log_prob"])
+        wandb.log({'output_directory': cfgm.model_path})
+               
+
+
+if __name__ == '__main__':
+
+    print(f"run for {nmodels} models")
+    wandb.agent(sweep_id=sweep_id, function=train_sweep, count=nmodels, project='quijote-hodells')
+

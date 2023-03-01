@@ -7,7 +7,9 @@ import pickle
 
 
 #####
-def k_cuts(args, k, bk):
+def k_cuts(args, bk, k=None):
+    if k is None:
+        k = np.load('/mnt/ceph/users/cmodi/contrastive/data/k-bispec.npy')
     ikmin = np.where(k[:, 0]>args.kmin)[0][0]
     if k[:, 0].max()>args.kmax :
         ikmax = np.where(k[:, 0]>args.kmax)[0][0]
@@ -20,21 +22,31 @@ def k_cuts(args, k, bk):
     return bk
 
 
+def _add_offset(offset_amp, bk, seed):
+    offset = offset_amp*np.random.uniform(1, 10, np.prod(bk.shape[:2]))
+    offset = offset.reshape(bk.shape[0], bk.shape[1]) # different offset for sim & HOD realization
+    bk = bk + offset[..., None]
+    return bk, offset
+
+
 def add_offset(args, bk, seed=None):
     if seed is not None: np.random.seed(seed)
     if args.offset_amp:
         print(f"Offset power spectra with amplitude: {args.offset_amp}")
-        offset = args.offset_amp*np.random.uniform(1, 10, np.prod(bk.shape[:2]))
-        offset = offset.reshape(bk.shape[0], bk.shape[1]) # different offset for sim & HOD realization
-        bk = bk + offset[..., None]
+        bk, offset = _add_offset(args.offset_amp, bk, seed)
     else:
         offset = None
     return bk, offset
 
 
-def normalize_amplitude(args, bk):
+def _normalize_amplitude(args, bk):
     if args.ampnorm:
         raise NotImplementedError
+    return bk 
+
+def normalize_amplitude(args, bk):
+    if args.ampnorm:
+        bk = _normalize_amplitude(args, bk) 
     return bk 
 
 
@@ -51,7 +63,7 @@ def hod_bispec_lh_features(datapath, args):
     bk, offset = add_offset(args, bk)
 
     #k cut
-    bk = k_cuts(args, k, bk)
+    bk = k_cuts(args, bk. k)
 
     # Normalize at large sacles
     bk = normalize_amplitude(args, bk)

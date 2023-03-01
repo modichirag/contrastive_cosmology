@@ -7,7 +7,9 @@ import pickle
 
 
 #####
-def k_cuts(args, k, pk):
+def k_cuts(args, pk, k=None):
+    if k is None:
+        k = np.load('/mnt/ceph/users/cmodi/contrastive/data/k-256.npy')
     ikmin = np.where(k>args.kmin)[0][0]
     ikmax = np.where(k>args.kmax)[0][0]
     pk = pk[..., ikmin:ikmax, :]
@@ -15,21 +17,29 @@ def k_cuts(args, k, pk):
     return pk
 
 
+def _add_offset(offset_amp, pk, seed):
+    offset = offset_amp*np.random.uniform(1, 10, np.prod(pk.shape[:2]))
+    offset = offset.reshape(pk.shape[0], pk.shape[1]) # different offset for sim & HOD realization
+    pk = pk + offset[..., None, None] #add k and ells dimension
+    return pk, offset
+
 def add_offset(args, pk, seed=None):
     if seed is not None: np.random.seed(seed)
     if args.offset_amp:
         print(f"Offset power spectra with amplitude: {args.offset_amp}")
-        offset = args.offset_amp*np.random.uniform(1, 10, np.prod(pk.shape[:2]))
-        offset = offset.reshape(pk.shape[0], pk.shape[1]) # different offset for sim & HOD realization
-        pk = pk + offset[..., None, None] #add k and ells dimension
+        pk, offset = _add_offset(args.offset_amp, pk, seed)
     else:
         offset = None
     return pk, offset
 
 
+def _ampnorm(ampnorm, pk):
+    pk /= pk[..., ampnorm:ampnorm+1]
+    return pk
+
 def normalize_amplitude(args, pk):
     if args.ampnorm:
-        pk /= pk[..., args.ampnorm:args.ampnorm+1]
+        pk = _ampnorm(args.ampnorm, pk)
         print(f"Normalize amplitude at scale-index: {args.ampnorm}")
     return pk
 
@@ -63,7 +73,7 @@ def hod_ells_lh_features(datapath, args):
     pk, offset = add_offset(args, pk)
 
     #k cut
-    pk = k_cuts(args, k, pk)
+    pk = k_cuts(args, pk, k)
 
     #ells
     pk = subset_pk_ells(args, pk)
