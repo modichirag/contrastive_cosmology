@@ -11,35 +11,35 @@ import pickle
 
 
 ##Re-write it as imports from pkells and bispce file
-def k_cuts_pk(args, pk, k=None):
+def k_cuts_pk(args, pk, k=None, verbose=True):
     if k is None:
         k = np.load('/mnt/ceph/users/cmodi/contrastive/data/k-256.npy')
     ikmin = np.where(k>args.kmin_pk)[0][0]
     ikmax = np.where(k>args.kmax_pk)[0][0]
     pk = pk[..., ikmin:ikmax, :]
-    print("pk shape after k-cuts : ", pk.shape)
+    if verbose: print("pk shape after k-cuts : ", pk.shape)
     return pk
 
-def k_cuts_bk(args, bk, k=None):
+def k_cuts_bk(args, bk, k=None, verbose=True):
     if k is None:
         k = np.load('/mnt/ceph/users/cmodi/contrastive/data/k-bispec.npy')
     ikmin = np.where(k[:, 0]>args.kmin_bk)[0][0]
     if k[:, 0].max()>args.kmax_bk :
         ikmax = np.where(k[:, 0]>args.kmax_bk)[0][0]
-        print(f"kmax cut at {ikmax}")
+        if verbose: print(f"kmax cut at {ikmax}")
         bk = bk[..., ikmin:ikmax]
     else:
-        print(f"kmax cut at {args.kmax_bk} is on smaller scales than the data at {k[:, 0].max()}")
+        if verbose: print(f"kmax cut at {args.kmax_bk} is on smaller scales than the data at {k[:, 0].max()}")
         bk = bk[..., ikmin:, :]
-    print("bk shape after k-cuts : ", bk.shape)
+    if verbose: print("bk shape after k-cuts : ", bk.shape)
     return bk
 
 
-def add_offset_pk(args, pk, seed=None):
+def add_offset_pk(args, pk, seed=None, verbose=True):
     if seed is not None: np.random.seed(seed)
     if args.offset_amp_pk:
         pk, offset = loader_pk._add_offset(args.offset_amp_pk, pk, seed)                
-        print(f"Offset power spectra with amplitude: {args.offset_amp_pk}")
+        if verbose: print(f"Offset power spectra with amplitude: {args.offset_amp_pk}")
         # offset = args.offset_amp_pk*np.random.uniform(1, 10, np.prod(pk.shape[:2]))
         # offset = offset.reshape(pk.shape[0], pk.shape[1]) # different offset for sim & HOD realization
         # pk = pk + offset[..., None, None] #add k and ells dimension
@@ -48,11 +48,11 @@ def add_offset_pk(args, pk, seed=None):
     return pk, offset
 
 
-def add_offset_bk(args, bk, seed=None):
+def add_offset_bk(args, bk, seed=None, verbose=True):
     if seed is not None: np.random.seed(seed)
     if args.offset_amp_bk:
         bk, offset = loader_bk._add_offset(args.offset_amp_bk, bk, seed)                
-        print(f"Offset power spectra with amplitude: {args.offset_amp_bk}")
+        if verbose: print(f"Offset power spectra with amplitude: {args.offset_amp_bk}")
         # offset = args.offset_amp_bk*np.random.uniform(1, 10, np.prod(bk.shape[:2]))
         # offset = offset.reshape(bk.shape[0], bk.shape[1]) # different offset for sim & HOD realization
         # bk = bk + offset[..., None]
@@ -61,21 +61,21 @@ def add_offset_bk(args, bk, seed=None):
     return bk, offset
 
 
-def normalize_amplitude_bk(args, bk):
+def normalize_amplitude_bk(args, bk, verbose=True):
     if args.ampnorm_bk:
         raise NotImplementedError
     return bk 
 
-def normalize_amplitude_pk(args, pk):
+def normalize_amplitude_pk(args, pk, verbose=True):
     if args.ampnorm_pk:
         pk = loader_pk._ampnorm(args.ampnorm_pk, pk)
         # pk /= pk[..., args.ampnorm_pk:args.ampnorm_pk+1]
-        print(f"Normalize amplitude at scale-index: {args.ampnorm_pk}")
+        if verbose: print(f"Normalize amplitude at scale-index: {args.ampnorm_pk}")
     return pk
 
 
-def subset_pk_ells(args, pk):
-    pk = loader_pk.subset_pk_ells(args, pk)
+def subset_pk_ells(args, pk, verbose=True):
+    pk = loader_pk.subset_pk_ells(args, pk, verbose=verbose)
     # if len(args.ells) > 1:
     #     if args.ells == "02": pk = pk[..., [0, 1]]
     #     if args.ells == "04": pk = pk[..., [0, 2]]
@@ -91,23 +91,23 @@ def subset_pk_ells(args, pk):
     return pk
 
 
-def hod_bispec_lh_features(datapath, args):
+def hod_bispec_lh_features(datapath, args, verbose=True):
     if args.reduced: bk = np.load(datapath + '/qspec.npy')
     else: bk = np.load(datapath + '/bspec.npy')
     k = np.load('/mnt/ceph/users/cmodi/contrastive/data/k-bispec.npy')
-    print("k shape : ", k.shape)
+    if verbose: print("k shape : ", k.shape)
     ngal = np.load(datapath + '/gals.npy')[..., 0] # read centrals only
     nsims, nhod = bk.shape[0], bk.shape[1]
-    print("Loaded bispectrum data with shape : ", bk.shape)
+    if verbose: print("Loaded bispectrum data with shape : ", bk.shape)
     
     #Offset here
-    bk, offset = add_offset_bk(args, bk)
+    bk, offset = add_offset_bk(args, bk, verbose=verbose)
 
     #k cut
-    bk = k_cuts_bk(args, bk, k)
+    bk = k_cuts_bk(args, bk, k, verbose=verbose)
 
     # Normalize at large sacles
-    bk = normalize_amplitude_bk(args, bk)
+    bk = normalize_amplitude_bk(args, bk, verbose=verbose)
     
     if args.ngals:
         print("Add ngals to data")
@@ -122,29 +122,29 @@ def hod_bispec_lh_features(datapath, args):
 
 
 
-# def hod_ells_lh_features(datapath, args):
-#     pk = np.load(datapath + '/power_ell.npy')[:, :10] #bispectrum has 10 HOD realizations only
-#     k = np.load('/mnt/ceph/users/cmodi/contrastive/data/k-256.npy')
-#     ngal = np.load(datapath + '/gals.npy')[..., 0] # read centrals only
-#     nsims, nhod = pk.shape[0], pk.shape[1]
-#     print("Loaded power spectrum data with shape : ", pk.shape)
+def hod_ells_lh_features(datapath, args, verbose=True):
+    pk = np.load(datapath + '/power_ell.npy')[:, :10] #bispectrum has 10 HOD realizations only
+    k = np.load('/mnt/ceph/users/cmodi/contrastive/data/k-256.npy')
+    ngal = np.load(datapath + '/gals.npy')[..., 0] # read centrals only
+    nsims, nhod = pk.shape[0], pk.shape[1]
+    if verbose: print("Loaded power spectrum data with shape : ", pk.shape)
     
-#     #Offset here
-#     pk, offset = add_offset_pk(args, pk)
+    #Offset here
+    pk, offset = add_offset_pk(args, pk, verbose=verbose)
 
-#     #k cut
-#     pk = k_cuts_pk(args, pk, k)
+    #k cut
+    pk = k_cuts_pk(args, pk, k, verbose=verbose)
 
-#     #ells
-#     pk = subset_pk_ells(args, pk)
+    #ells
+    pk = subset_pk_ells(args, pk, verbose=verbose)
     
-#     # Normalize at large sacles
-#     pk = normalize_amplitude_pk(args, pk)
+    # Normalize at large sacles
+    pk = normalize_amplitude_pk(args, pk, verbose=verbose)
 
-#     features = pk*1.
-#     print("Final features shape : ", features.shape)
+    features = pk*1.
+    print("Final features shape : ", features.shape)
 
-#     return features, offset
+    return features, offset
 
 
 # def hod_bispec_lh_features(datapath, args):
@@ -243,7 +243,7 @@ def hod_pknb_lh(datapath, args):
     """
     
     features_pk, offset_pk = hod_ells_lh_features(datapath, args)
-    features_bk, offset_bk = hod_bispec_lh_features(datapath, args)
+    features_bk, offset_bk = hod_bispec_lh_features(datapath, args) #this has ngal as well
     print(features_pk.shape, features_bk.shape)
     features = np.concatenate([features_pk, features_bk], axis=-1)
     params = hod_lh_params(datapath, args, features)

@@ -7,18 +7,18 @@ import pickle
 
 
 #####
-def k_cuts(args, bk, k=None):
+def k_cuts(args, bk, k=None, verbose=True):
     if k is None:
         k = np.load('/mnt/ceph/users/cmodi/contrastive/data/k-bispec.npy')
     ikmin = np.where(k[:, 0]>args.kmin)[0][0]
     if k[:, 0].max()>args.kmax :
         ikmax = np.where(k[:, 0]>args.kmax)[0][0]
-        print(f"kmax cut at {ikmax}")
+        if verbose: print(f"kmax cut at {ikmax}")
         bk = bk[..., ikmin:ikmax]
     else:
-        print(f"kmax cut at {args.kmax} is on smaller scales than the data at {k[:, 0].max()}")
+        if verbose: print(f"kmax cut at {args.kmax} is on smaller scales than the data at {k[:, 0].max()}")
         bk = bk[..., ikmin:, :]
-    print("bk shape after k-cuts : ", bk.shape)
+    if verbose: print("bk shape after k-cuts : ", bk.shape)
     return bk
 
 
@@ -29,10 +29,10 @@ def _add_offset(offset_amp, bk, seed):
     return bk, offset
 
 
-def add_offset(args, bk, seed=None):
+def add_offset(args, bk, seed=None, verbose=True):
     if seed is not None: np.random.seed(seed)
     if args.offset_amp:
-        print(f"Offset power spectra with amplitude: {args.offset_amp}")
+        if verbose: print(f"Offset power spectra with amplitude: {args.offset_amp}")
         bk, offset = _add_offset(args.offset_amp, bk, seed)
     else:
         offset = None
@@ -44,29 +44,29 @@ def _normalize_amplitude(args, bk):
         raise NotImplementedError
     return bk 
 
-def normalize_amplitude(args, bk):
+def normalize_amplitude(args, bk, verbose=True):
     if args.ampnorm:
         bk = _normalize_amplitude(args, bk) 
     return bk 
 
 
-def hod_bispec_lh_features(datapath, args):
+def hod_bispec_lh_features(datapath, args, verbose=True):
     if args.reduced: bk = np.load(datapath + '/qspec.npy')
     else: bk = np.load(datapath + '/bspec.npy')
     k = np.load('/mnt/ceph/users/cmodi/contrastive/data/k-bispec.npy')
-    print("k shape : ", k.shape)
+    if verbose: print("k shape : ", k.shape)
     ngal = np.load(datapath + '/gals.npy')[..., 0] # read centrals only
     nsims, nhod = bk.shape[0], bk.shape[1]
-    print("Loaded bispectrum data with shape : ", bk.shape)
+    if verbose: print("Loaded bispectrum data with shape : ", bk.shape)
     
     #Offset here
-    bk, offset = add_offset(args, bk)
+    bk, offset = add_offset(args, bk, verbose=verbose)
 
     #k cut
-    bk = k_cuts(args, bk. k)
+    bk = k_cuts(args, bk, k, verbose=verbose)
 
     # Normalize at large sacles
-    bk = normalize_amplitude(args, bk)
+    bk = normalize_amplitude(args, bk, verbose=verbose)
     
     if args.ngals:
         print("Add ngals to data")
@@ -75,6 +75,8 @@ def hod_bispec_lh_features(datapath, args):
             print("Subsizing galaxy catalog for bisepctrum, make sure it is consistent")
             ngal = ngal[:, :bk.shape[1]]
         features = np.concatenate([bk, np.expand_dims(ngal, -1)], axis=-1)
+    else:
+        features = bk.copy()
         
     print("Final features shape : ", features.shape)
     return features, offset

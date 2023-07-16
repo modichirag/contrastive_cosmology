@@ -7,13 +7,13 @@ import pickle
 
 
 #####
-def k_cuts(args, pk, k=None):
+def k_cuts(args, pk, k=None, verbose=True):
     if k is None:
         k = np.load('/mnt/ceph/users/cmodi/contrastive/data/k-256.npy')
     ikmin = np.where(k>args.kmin)[0][0]
     ikmax = np.where(k>args.kmax)[0][0]
     pk = pk[..., ikmin:ikmax, :]
-    print("pk shape after k-cuts : ", pk.shape)
+    if verbose: print("pk shape after k-cuts : ", pk.shape)
     return pk
 
 
@@ -23,10 +23,10 @@ def _add_offset(offset_amp, pk, seed):
     pk = pk + offset[..., None, None] #add k and ells dimension
     return pk, offset
 
-def add_offset(args, pk, seed=None):
+def add_offset(args, pk, seed=None, verbose=True):
     if seed is not None: np.random.seed(seed)
     if args.offset_amp:
-        print(f"Offset power spectra with amplitude: {args.offset_amp}")
+        if verbose: print(f"Offset power spectra with amplitude: {args.offset_amp}")
         pk, offset = _add_offset(args.offset_amp, pk, seed)
     else:
         offset = None
@@ -37,14 +37,14 @@ def _ampnorm(ampnorm, pk):
     pk /= pk[..., ampnorm:ampnorm+1]
     return pk
 
-def normalize_amplitude(args, pk):
+def normalize_amplitude(args, pk, verbose=True):
     if args.ampnorm:
         pk = _ampnorm(args.ampnorm, pk)
-        print(f"Normalize amplitude at scale-index: {args.ampnorm}")
+        if verbose: print(f"Normalize amplitude at scale-index: {args.ampnorm}")
     return pk
 
 
-def subset_pk_ells(args, pk):
+def subset_pk_ells(args, pk, verbose=True):
     
     if len(args.ells) > 1:
         if args.ells == "02": pk = pk[..., [0, 1]]
@@ -57,12 +57,12 @@ def subset_pk_ells(args, pk):
         if args.ells == "0": pk = pk[..., 0]
         if args.ells == "2": pk = pk[..., 1]
         if args.ells == "4": pk = pk[..., 2]
-    print("pk shape after selecting ells : ", pk.shape)
+    if verbose: print("pk shape after selecting ells : ", pk.shape)
     return pk
 
 
 
-def hod_ells_lh_features(datapath, args):
+def hod_ells_lh_features(datapath, args, verbose=True):
     pk = np.load(datapath + '/power_ell.npy')
     k = np.load('/mnt/ceph/users/cmodi/contrastive/data/k-256.npy')
     ngal = np.load(datapath + '/gals.npy')[..., 0] # read centrals only
@@ -70,21 +70,22 @@ def hod_ells_lh_features(datapath, args):
     print("Loaded power spectrum data with shape : ", pk.shape)
     
     #Offset here
-    pk, offset = add_offset(args, pk)
+    pk, offset = add_offset(args, pk, verbose=verbose)
 
     #k cut
-    pk = k_cuts(args, pk, k)
+    pk = k_cuts(args, pk, k, verbose=verbose)
 
     #ells
-    pk = subset_pk_ells(args, pk)
+    pk = subset_pk_ells(args, pk, verbose=verbose)
     
     # Normalize at large sacles
-    pk = normalize_amplitude(args, pk)
+    pk = normalize_amplitude(args, pk, verbose=verbose)
     
     if args.ngals:
-        print("Add ngals to data")
+        if verbose: print("Add ngals to data")
         features = np.concatenate([pk, np.expand_dims(ngal, -1)], axis=-1)
-        
+    else:
+        features = pk.copy()
     print("Final features shape : ", features.shape)
 
     return features, offset
