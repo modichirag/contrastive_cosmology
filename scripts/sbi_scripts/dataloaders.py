@@ -25,6 +25,7 @@ def matter_pk(args):
 
     return features, params
 
+
 #####
 def hod_pk(args):
     datapath = "/mnt/ceph/users/cmodi/contrastive/data/" + args.datapath
@@ -194,18 +195,25 @@ def hod_ells_combine(args):
 
 
 #####
-def hod_ells_offset(args, testing=False):
+def hod_ells_offset(args, offset_amp=1e4):
+    """
+    Data:
+    power spectrum multipoles and ngals
+    Offset multipoles with a random constant amplitude scaled with offset_amp.
+    """
+    
     datapath = "/mnt/ceph/users/cmodi/contrastive/data/" + args.datapath
     pk = np.load(datapath + '/power_ell.npy')
-    #pk += 1e8 #add offset to make it positive
-    offset = 1e4*np.random.uniform(1, 10, np.prod(pk.shape[:2])).reshape(pk.shape[0], pk.shape[1])
-    #if testing: offset = offset*0. + 1e4
-    pk = pk + offset[..., None, None]
-    print("Shape of raw power spectra : ", pk.shape)
     k = np.load('/mnt/ceph/users/cmodi/contrastive/data/k-256.npy')
     ngal = np.load(datapath + '/gals.npy')[..., 0]
     nhod = pk.shape[1]
     print("Number of HODs per cosmology : ", nhod)
+    
+    #Offset here
+    #pk += 1e8 #add offset to make it positive
+    offset = offset_amp*np.random.uniform(1, 10, np.prod(pk.shape[:2])).reshape(pk.shape[0], pk.shape[1])
+    pk = pk + offset[..., None, None]
+    print("Shape of raw power spectra : ", pk.shape)
     #
     ikmin = np.where(k>args.kmin)[0][0]
     ikmax = np.where(k>args.kmax)[0][0]
@@ -241,7 +249,6 @@ def hod_ells_offset(args, testing=False):
     if args.fithod == 1: 
         hod_params = np.load(datapath + 'hodp.npy')
         print(cosmo_params.shape, hod_params.shape)
-        #if testing: hod_params = np.concatenate([hod_params, np.log10(1. + offset)[..., None]], axis=-1)
         hod_params = np.concatenate([hod_params, np.log10(offset)[..., None]], axis=-1)
         nhodp = hod_params.shape[-1]
         print(cosmo_params.shape, hod_params.shape)
