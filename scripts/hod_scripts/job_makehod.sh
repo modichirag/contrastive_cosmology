@@ -3,7 +3,7 @@
 #SBATCH -n 10
 #SBATCH --partition=ccm
 #SBATCH -C skylake
-#SBATCH --time=3:00:00
+#SBATCH --time=8:00:00 ###This time is good for 400 sims
 #SBATCH --job-name=makehod
 #SBATCH -o logs/%x.o%j
 
@@ -11,8 +11,10 @@
 module purge
 
 # Load in what we need to execute mpirun.
-module load gcc/7.5.0 openmpi
+module load modules/2.0-20220630
+module load gcc/7.5.0 openmpi/1.10.7 fftw
 source activate defpyn
+
 
 # We assume this executable is in the directory from which you ran sbatch.
 
@@ -24,11 +26,12 @@ echo $N_JOB
 i0=$1                           # read in from command line
 i1=$2                           # read in from command line
 z=0.5
-nbar=0.0001
+nbar=0.0004
 nhod=20
 simulation="fastpm"
-model="zheng07"
-finder="FoF"
+model="zheng07_ab"
+finder="FoF" 
+rewrite=1
 
 echo "run for range"
 echo $i0 $i1
@@ -42,7 +45,7 @@ do
     do
         j1=$((j+1))
         echo $j $j1
-        time python -u make_hod.py --z $z --finder $finder --model $model --id0 $j --id1 $((j+1)) --nhod $nhod --nbar $nbar  --simulation $simulation &
+        time python -u make_hod.py --z $z --finder $finder --model $model --id0 $j --id1 $((j+1)) --nhod $nhod --nbar $nbar  --simulation $simulation --rewrite $rewrite &
     done
     echo "inner loop exit"
     wait 

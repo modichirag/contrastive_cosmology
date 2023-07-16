@@ -76,8 +76,7 @@ for i_lhc in range(args.id0, args.id1):
     #Do not rerun the simulations already run
     if args.rewrite: do_hod = True
     else: do_hod = False
-    for i_hod in range(args.nhod):
-        if not os.path.isfile(save_dir + 'power_%d.npy'%i_hod) : do_hod = True
+    if not os.path.isfile(save_dir + 'power_rsd.npy') : do_hod = True
     if not do_hod: continue
 
     

@@ -46,9 +46,8 @@ def make_hod(script, i0, i1, model, nhod, z, seed, nbar, fiducial, finder, absca
     f.write(slurm)
     f.close()
     os.system('sbatch makehod.%i_%i.slurm' % (i0, i1))
-    os.system('mv makehod.%i_%i.slurm ./jobs/makehod.%i_%i.slurm' % (i0, i1, i0, i1))
+    os.system('mv makehod.%i_%i.slurm ./submitjobs/makehod.%i_%i.slurm' % (i0, i1, i0, i1))
     return None
-
 
 
 script = 'make_hod.py'

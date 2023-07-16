@@ -3,7 +3,7 @@
 #SBATCH -n 10
 #SBATCH --partition=ccm
 #SBATCH -C skylake
-#SBATCH --time=6:00:00
+#SBATCH --time=8:00:00  ###for 50 sims
 #SBATCH --job-name=bspec
 #SBATCH -o logs/%x.o%j
 
@@ -11,7 +11,8 @@
 module purge
 
 # Load in what we need to execute mpirun.
-module load gcc/7.5.0 openmpi fftw
+module load modules/2.0-20220630
+module load gcc/7.5.0 openmpi/1.10.7 fftw
 source activate defpyn
 
 
@@ -29,8 +30,8 @@ nbar=0.00045
 nhod=10
 simulation="quijote"
 model="zheng07_velab"
-finder="Rockstar" 
-rewrite=0
+finder="FoF" 
+rewrite=1
 
 echo "run for range"
 echo $i0 $i1

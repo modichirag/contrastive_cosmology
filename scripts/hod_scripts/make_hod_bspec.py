@@ -141,9 +141,10 @@ for i_lhc in range(args.id0, args.id1):
         pos = hod['Position'] + hod['VelocityOffset']*los
         bispec = Bk_periodic(pos.T, Lbox=bs, Ngrid=360, step=3, Ncut=3, Nmax=26, silent=False, nthreads=32)
         b123, q123, bsn = bispec['b123'], bispec['q123'], bispec['b123_sn']
-        #kbispec = np.array([bispec['i_k1']*kf, bispec['i_k2']*kf, bispec['i_k3']*kf])
+        kbispec = np.array([bispec['i_k1']*kf, bispec['i_k2']*kf, bispec['i_k3']*kf])
+        np.save('kbispec', kbispec)
         print(f"time taken for {i_hod} of LH {i_lhc}: ", time.time()-start)
-        
+
         bspecs.append(b123)
         qspecs.append(q123)
         bsns.append(bsn)
