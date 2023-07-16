@@ -4,7 +4,7 @@ sys.path.append('../../src/')
 import sbitools, sbiplots
 
 
-def hodells_path(cfgd):
+def hodells_path(cfgd, verbose=True):
     cuts = cfgd['datacuts']
     args = {}
     for i in cfgd.keys():
@@ -19,7 +19,7 @@ def hodells_path(cfgd):
     folder = ''
     for key in sorted(cuts):
         if cuts[key]:
-            print(key, str(cuts[key]))
+            if verbose: print("key-val pair : ", key, str(cuts[key]))
             if type(cuts[key]) == bool: folder = folder + f"{key}"
             else: folder = folder + f'{key}{cuts[key]}'
             folder += '-'
@@ -28,7 +28,7 @@ def hodells_path(cfgd):
     return analysis_path + folder
 
 
-def bispec_path(cfgd):
+def bispec_path(cfgd, verbose=True):
     cuts = cfgd['datacuts']
     args = {}
     for i in cfgd.keys():
@@ -43,7 +43,7 @@ def bispec_path(cfgd):
     folder = 'bk-'
     for key in sorted(cuts):
         if cuts[key]:
-            print(key, str(cuts[key]))
+            if verbose: print("key-val pair : ", key, str(cuts[key]))
             if type(cuts[key]) == bool: folder = folder + f"{key}"
             else: folder = folder + f'{key}{cuts[key]}'
             folder += '-'
@@ -51,7 +51,7 @@ def bispec_path(cfgd):
 
     return analysis_path + folder
 
-def pknb_path(cfgd):
+def pknb_path(cfgd, verbose=True):
     cuts = cfgd['datacuts']
     args = {}
     for i in cfgd.keys():
@@ -66,7 +66,32 @@ def pknb_path(cfgd):
     folder = 'pknb-'
     for key in sorted(cuts):
         if cuts[key]:
-            print(key, str(cuts[key]))
+            if verbose: print("key-val pair : ", key, str(cuts[key]))
+            if type(cuts[key]) == bool: folder = folder + f"{key}"
+            else: folder = folder + f'{key}{cuts[key]}'
+            folder += '-'
+    folder = folder[:-1] + f'{cfgd.suffix}/'
+
+    return analysis_path + folder
+
+
+
+def scat_path(cfgd, verbose=True):
+    cuts = cfgd['datacuts']
+    args = {}
+    for i in cfgd.keys():
+        args.update(**cfgd[i])
+    cfgd = sbitools.Objectify(**args)
+
+    #
+    datapath = f'/mnt/ceph/users/cmodi/contrastive/data/{cfgd.simulation}/{cfgd.finder}/z{int(cfgd.z*10):02d}-N{int(cfgd.nbar/1e-4):04d}/{cfgd.hodmodel}/'
+    analysis_path = datapath.replace("data", "analysis")
+    
+    #folder name is decided by data-cuts imposed
+    folder = 'scat-'
+    for key in sorted(cuts):
+        if cuts[key]:
+            if verbose: print("key-val pair : ", key, str(cuts[key]))
             if type(cuts[key]) == bool: folder = folder + f"{key}"
             else: folder = folder + f'{key}{cuts[key]}'
             folder += '-'

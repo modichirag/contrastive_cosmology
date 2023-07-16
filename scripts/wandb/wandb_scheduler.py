@@ -22,7 +22,8 @@ if 'ells' in config_data:
     analysis_path = folder_path.hodells_path(cfgd)
     model_path = f'{analysis_path}/{sweep_id}/'
     config_path = f'{model_path}/sweep_{fname}'
-    command = f"time python -u ./pkells/wandb_hodells.py {config_path} {nmodels}"
+    if 'combine' in config_data: command = f"time python -u ./pkells_combine/wandb_hodells.py {config_path} {nmodels}"
+    else: command = f"time python -u ./pkells/wandb_hodells.py {config_path} {nmodels}"
 
 elif ('bspec' in config_data) or ('qspec' in config_data):
     print("Scheduling for Bispectrum")
@@ -37,6 +38,13 @@ elif ('pknb' in config_data):
     model_path = f'{analysis_path}/{sweep_id}/'
     config_path = f'{model_path}/sweep_{fname}'
     command = f"time python -u ./pknb/wandb_pknb.py {config_path} {nmodels}"
+
+elif ('scat' in config_data):
+    print("Scheduling for pk and bispectrum")
+    analysis_path = folder_path.scat_path(cfgd)
+    model_path = f'{analysis_path}/{sweep_id}/'
+    config_path = f'{model_path}/sweep_{fname}'
+    command = f"time python -u ./scat/wandb_scat.py {config_path} {nmodels}"
     
 os.makedirs(model_path, exist_ok=True)
 with open(config_path, 'w') as outfile:
