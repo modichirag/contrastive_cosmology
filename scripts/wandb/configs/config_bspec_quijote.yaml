@@ -2,9 +2,9 @@
 data:
   z: 0.5
   nbar: 4.e-4
-  simulation: fastpm
+  simulation: quijote
   finder: 'FoF'
-  hodmodel: zheng07_velab
+  hodmodel: zheng07
   
 datacuts:
   reduced: False

@@ -1,9 +1,9 @@
 ---
 data:
-  z: 0.5
-  nbar: 4.e-4
-  simulation: fastpm
-  finder: 'FoF'
+  z: 1.0
+  nbar: 4.5e-4
+  simulation: quijote
+  finder: 'combine'
   hodmodel: zheng07_velab
   
 datacuts:
@@ -14,13 +14,13 @@ datacuts:
   standardize: True
   ampnorm: False
   offset_amp: False
-  ngals: False
+  ngals: True
 
 analysis:
   seed: 0
   train_fraction: 0.85
-  validation_fraction: 0.06
+  validation_fraction: 0.2
   fithod: True
   standardize_hod: True
-  suffix: "-train94"
+  suffix: ""
   ndiagnostics: 5

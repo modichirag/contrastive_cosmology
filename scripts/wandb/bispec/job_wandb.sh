@@ -11,7 +11,8 @@
 module purge
 
 # Load in what we need to execute mpirun.
-module load gcc/7.5.0 openmpi
+module load modules/2.0-20220630
+module load openmpi  gcc/7.5.0
 source activate ptorch
 
 # We assume this executable is in the directory from which you ran sbatch.

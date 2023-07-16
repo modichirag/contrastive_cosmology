@@ -7,20 +7,25 @@ data:
   hodmodel: zheng07_velab
   
 datacuts:
+  ells: "024"
+  kmax_pk: 0.5
+  kmin_pk: 0.005
+  ampnorm_pk: False
+  offset_amp_pk: 1.e+4
+  kmax_bk: 0.5
+  kmin_bk: 0.005
+  ampnorm_bk: False
+  offset_amp_bk: False
   reduced: False
-  kmax: 0.5
-  kmin: 0.005
   logit: False
   standardize: True
-  ampnorm: False
-  offset_amp: False
-  ngals: False
+  ngals: True
 
 analysis:
   seed: 0
   train_fraction: 0.85
-  validation_fraction: 0.06
+  validation_fraction: 0.2
   fithod: True
   standardize_hod: True
-  suffix: "-train94"
+  suffix: ""
   ndiagnostics: 5

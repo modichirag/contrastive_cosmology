@@ -2,25 +2,27 @@
 data:
   z: 0.5
   nbar: 4.e-4
-  simulation: fastpm
-  finder: 'FoF'
+  simulation: quijote
+  finder: 'Rockstar'
   hodmodel: zheng07_velab
   
 datacuts:
-  reduced: False
-  kmax: 0.5
-  kmin: 0.005
-  logit: False
+  ells: '012'
+  orders: '012'
+  exps: '0123'  #ordering is [0.5, 1.0, 1.5, 2.0]
+  scales: 6
   standardize: True
   ampnorm: False
   offset_amp: False
-  ngals: False
+  logit: False
+  ngals: True
+  
 
 analysis:
   seed: 0
   train_fraction: 0.85
-  validation_fraction: 0.06
+  validation_fraction: 0.2
   fithod: True
   standardize_hod: True
-  suffix: "-train94"
+  suffix: ""
   ndiagnostics: 5

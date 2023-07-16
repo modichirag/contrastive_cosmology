@@ -3,7 +3,7 @@
 #SBATCH -n 4
 #SBATCH --partition=ccm
 #SBATCH -C skylake
-#SBATCH --time=6:00:00
+#SBATCH --time=4:00:00
 #SBATCH --job-name=wandb
 #SBATCH -o ../logs/%x.o%j
 
@@ -11,7 +11,6 @@
 module purge
 
 # Load in what we need to execute mpirun.
-module load modules/2.0-20220630
 module load gcc/7.5.0 openmpi
 source activate ptorch
 
@@ -24,4 +23,4 @@ echo $N_JOB
 config_data=$1
 nmodels=20
 
-time mpirun -n ${N_JOB} python -u wandb_hodells.py ${config_data} ${nmodels} 
+time mpirun -n ${N_JOB} python -u wandb_hodells_combine.py ${config_data} ${nmodels} 
