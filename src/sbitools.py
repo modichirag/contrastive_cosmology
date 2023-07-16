@@ -84,7 +84,7 @@ def split_index(n, test_frac, seed):
     return train, test 
 
     
-def test_train_split(x, y, train_size_frac=0.8, random_state=0, reshape=True):
+def test_train_split(x, y, train_size_frac=0.8, random_state=0, reshape=True, retindex=False):
     '''
     Split the data into test and training dataset
     '''
@@ -99,17 +99,14 @@ def test_train_split(x, y, train_size_frac=0.8, random_state=0, reshape=True):
         train_id = np.load(f"{idxpath}train-{fname}.npy")
         test_id = np.load(f"{idxpath}test-{fname}.npy")
         print("Successfully loaded")
+        if retindex: return train_id, test_id
         
     except Exception as e:
         print("\nEXCEPTION occured in loading test_train_split")
         print(e)
         print("Generate splits now and save them")
         train_id, test_id = split_index(n, test_frac, random_state)
-        # train, test = train_test_split(np.arange(x.shape[0])[:, np.newaxis], 
-        #                                train_size=train_size_frac, random_state=random_state)
-        # train_id = train.ravel()
-        # test_id = test.ravel()
-
+ 
     data = namedtuple("data", ["trainx", "trainy", "testx", "testy"])
     data.tidx = [train_id, test_id]
     data.trainx = x[train_id]

@@ -113,7 +113,14 @@ def plot_posterior(x, y, posterior, nsamples=1000, titles=None, savename="", ndi
 
 
 ###
-@timeout(1000, os.strerror(errno.ETIMEDOUT))
+@timeout(100, os.strerror(errno.ETIMEDOUT))
+def _sample_for_rank(posterior, x, nsamples):
+    posterior_samples = posterior.sample((nsamples,),
+                                             x=torch.from_numpy(x.astype('float32')), 
+                                             show_progress_bars=False).detach().numpy()
+    return posterior_samples
+
+#@timeout(5000, os.strerror(errno.ETIMEDOUT))
 def get_ranks(x, y, posterior, test_frac=1.0, nsamples=500, ndim=None):
     if ndim is None:
         ndim = y.shape[1]
@@ -127,13 +134,18 @@ def get_ranks(x, y, posterior, test_frac=1.0, nsamples=500, ndim=None):
         if ii%1000 == 0: print("Test iteration : ",ii)
         if np.random.uniform() > test_frac: continue
 
-        try: 
-            posterior_samples = posterior.sample((nsamples,),
-                                             x=torch.from_numpy(x[ii].astype('float32')), 
-                                             show_progress_bars=False).detach().numpy()
-        except Warning as w:
-            #except :
-            print("WARNING\n", w)
+        # try:
+        #     posterior_samples = posterior.sample((nsamples,),
+        #                                      x=torch.from_numpy(x[ii].astype('float32')), 
+        #                                      show_progress_bars=False).detach().numpy()
+        # except Warning as w:
+        #     #except :
+        #     print("WARNING\n", w)
+        #     continue
+        try:
+            posterior_samples = _sample_for_rank(posterior, x[ii], nsamples)
+        except Exception as e:
+            print(f"Exception at index {ii}\n", e)
             continue
         mu, std = posterior_samples.mean(axis=0)[:ndim], posterior_samples.std(axis=0)[:ndim]
         rank = [(posterior_samples[:, i] < y[ii, i]).sum() for i in range(ndim)]
