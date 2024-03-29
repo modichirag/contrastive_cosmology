@@ -26,9 +26,11 @@ def setup_hod(halos, nbar=1e-4, satfrac=0.2, bs=1000, alpha_fid=0.7):
 
 
 
-def sample_HOD(m_hod): 
+def sample_HOD(m_hod, seed=None): 
     ''' sample HOD value based on priors set by Parejko+(2013)
     '''
+    if seed is not None:
+        np.random.seed(seed)
     if m_hod == 'zheng07':
         hod_min = np.array([13.2, 0.4, 13.1, 14., 0.7])
         dhod = np.array([0.15, 0.1, 0.4, 0.3, 0.4])
@@ -120,7 +122,7 @@ def sample_HOD_chang():
 
 
 
-def sample_HOD_broad(m_hod, nhod, seed): 
+def sample_HOD_broad_lh(m_hod, nhod, seed): 
     ''' sample HOD value in a LH in a braod range consistent with full cosmology LH
     '''
     if m_hod == 'zheng07':
@@ -136,7 +138,30 @@ def sample_HOD_broad(m_hod, nhod, seed):
     else: 
         raise NotImplementedError 
 
+def sample_HOD_broad(m_hod, seed): 
+    ''' sample HOD value randomly with broad range consistent with full cosmology LH
+    '''
+    np.random.seed(seed)
+    logMmin = np.random.uniform(12, 14)
+    sigma_logM = np.random.uniform(0.1, 0.6)
+    alpha = np.random.uniform(0.1, 1.5)
+    logM0 = np.random.uniform(12.5, 15)
+    logM1 = np.random.uniform(12.5, 15)
+    if m_hod == 'zheng07':
+        _hod = np.array([logMmin, sigma_logM, logM0, logM1, alpha])
+        return {'logMmin': _hod[0], 'sigma_logM': _hod[1], 'logM0': _hod[2], 'logM1': _hod[3], 'alpha': _hod[4]}
+    
+    elif m_hod == 'zheng07_ab':
+        abias0 = np.clip(0.3*np.random.normal(), -1, 1)
+        abias1 = np.clip(0.3*np.random.normal(), -1, 1)
+        _hod = np.array([logMmin, sigma_logM, logM0, logM1, alpha, abias0, abias1])
+        return {'logMmin': _hod[0], 'sigma_logM': _hod[1], 'logM0': _hod[2], 'logM1': _hod[3], 'alpha': _hod[4], 
+                'mean_occupation_centrals_assembias_param1': abias0, 
+                'mean_occupation_satellites_assembias_param1': abias1}
+    else: 
+        raise NotImplementedError 
 
+    
         
 def galaxy_summary(hod, bs, filename=None):
     gtype = hod['gal_type'].compute()
@@ -154,11 +179,15 @@ def galaxy_summary(hod, bs, filename=None):
 
 
 def get_power(f, pm, num=None, compensated=False):
-    if num is None: gal = pm.paint(f['Position'].compute())
-    else: gal = pm.paint(f['Position'][:num].compute())
+    if num is None:
+        layout = pm.decompose(f['Position'])
+        gal = pm.paint(f['Position'].compute(), layout=layout)
+    else:
+        layout = pm.decompose(f['Position'][:num])
+        gal = pm.paint(f['Position'][:num].compute(), layout=layout)
     if compensated: gal = tools.cic_compensation(gal, order=2)
 
-    mesh = gal / gal.cmean() - 1
+    mesh = (gal / gal.cmean()) - 1
     ps = FFTPower(mesh, mode='1d').power.data
     k, p = ps['k'], ps['power'].real
     return k, p
@@ -166,11 +195,15 @@ def get_power(f, pm, num=None, compensated=False):
 
 def get_power_rsdwedges(f, pm, num=None, compensated=False, los=[0, 0, 1]):
     pos = f['Position'] + f['VelocityOffset']*los
-    if num is None: gal = pm.paint(pos.compute())
-    else: gal = pm.paint(pos[:num].compute())
+    if num is None:
+        layout = pm.decompose(pos)
+        gal = pm.paint(pos.compute(), layout=layout)
+    else:
+        layout = pm.decompose(pos[:num])
+        gal = pm.paint(pos[:num].compute(), layout=layout)
     if compensated: gal = tools.cic_compensation(gal, order=2)
 
-    mesh = gal / gal.cmean() - 1
+    mesh = (gal / gal.cmean()) - 1
     ps = FFTPower(mesh, mode='2d', Nmu=10).power.data
     k, p = ps['k'], ps['power'].real[:, 5:]
     return k, p
@@ -178,8 +211,12 @@ def get_power_rsdwedges(f, pm, num=None, compensated=False, los=[0, 0, 1]):
 
 def get_power_rsd(f, pm, num=None, compensated=False, los=[0, 0, 1], Nmu=10, poles=[0, 2, 4], kmin=0.0, dk=None):
     pos = f['Position'] + f['VelocityOffset']*los
-    if num is None: gal = pm.paint(pos.compute())
-    else: gal = pm.paint(pos[:num].compute())
+    if num is None:
+        layout = pm.decompose(pos)
+        gal = pm.paint(pos.compute(), layout=layout)
+    else:
+        layout = pm.decompose(pos[:num])
+        gal = pm.paint(pos[:num].compute(), layout=layout)
     if compensated: gal = tools.cic_compensation(gal, order=2)
 
     mesh = gal / gal.cmean() - 1
