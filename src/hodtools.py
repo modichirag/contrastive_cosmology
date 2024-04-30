@@ -145,15 +145,15 @@ def sample_HOD_broad(m_hod, seed):
     logMmin = np.random.uniform(12, 14)
     sigma_logM = np.random.uniform(0.1, 0.6)
     alpha = np.random.uniform(0.1, 1.5)
-    logM0 = np.random.uniform(12.5, 15)
-    logM1 = np.random.uniform(12.5, 15)
+    logM0 = np.random.uniform(13, 15)
+    logM1 = np.random.uniform(13, 15)
     if m_hod == 'zheng07':
         _hod = np.array([logMmin, sigma_logM, logM0, logM1, alpha])
         return {'logMmin': _hod[0], 'sigma_logM': _hod[1], 'logM0': _hod[2], 'logM1': _hod[3], 'alpha': _hod[4]}
     
     elif m_hod == 'zheng07_ab':
-        abias0 = np.clip(0.3*np.random.normal(), -1, 1)
-        abias1 = np.clip(0.3*np.random.normal(), -1, 1)
+        abias0 = np.clip(0.2*np.random.normal(), -1, 1)
+        abias1 = np.clip(0.2*np.random.normal(), -1, 1)
         _hod = np.array([logMmin, sigma_logM, logM0, logM1, alpha, abias0, abias1])
         return {'logMmin': _hod[0], 'sigma_logM': _hod[1], 'logM0': _hod[2], 'logM1': _hod[3], 'alpha': _hod[4], 
                 'mean_occupation_centrals_assembias_param1': abias0, 
